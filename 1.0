@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyBudget AI - Spese, Bollette & Scorte</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js per i grafici -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- pdf.js per lettura testo da PDF di bollette -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-20 md:pb-0">
+
+    <!-- Header & Navigation -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Titolo -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+                    <div class="bg-white/15 p-2 rounded-xl backdrop-blur-md">
+                        <i class="fa-solid fa-receipt text-xl text-amber-300"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight flex items-center gap-1.5">
+                            FamilyBudget <span class="text-amber-300 text-xs font-bold px-2 py-0.5 bg-amber-400/20 rounded-full border border-amber-300/30">AI Pro</span>
+                        </h1>
+                        <p class="text-[10px] text-indigo-200">Spese, Bollette, Buoni & Scorte</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn bg-indigo-800 text-white px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('scanner')" id="nav-scanner" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> AI Scanner
+                    </button>
+                    <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-box-archive"></i> Archivio & Bollette
+                    </button>
+                    <button onclick="switchTab('coupons')" id="nav-coupons" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2 relative">
+                        <i class="fa-solid fa-ticket text-amber-300"></i> Buoni & Alert
+                        <span id="coupon-alert-badge" class="hidden absolute -top-1 -right-1 bg-amber-400 text-indigo-950 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow">!</span>
+                    </button>
+                    <button onclick="switchTab('pantry')" id="nav-pantry" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2 relative">
+                        <i class="fa-solid fa-basket-shopping text-emerald-300"></i> Dispensa & Scorte
+                        <span id="pantry-alert-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow">!</span>
+                    </button>
+                </nav>
+
+                <!-- Componente Famiglia Corrente -->
+                <div class="hidden lg:flex items-center gap-2 bg-indigo-800/60 px-3 py-1.5 rounded-xl border border-indigo-500/30 text-xs">
+                    <i class="fa-solid fa-user-gear text-indigo-300"></i>
+                    <select id="header-member-select" onchange="syncMember(this.value)" class="bg-transparent font-medium focus:outline-none cursor-pointer text-white">
+                        <option value="Mamma" class="text-slate-800">👩 Mamma</option>
+                        <option value="Papà" class="text-slate-800">👨 Papà</option>
+                        <option value="Figlio/a" class="text-slate-800">🧒 Figlio/a</option>
+                        <option value="Famiglia" class="text-slate-800" selected>🏡 Comune/Famiglia</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- BANNER PROMEMORIA / ALERT ATTIVI -->
+        <div id="global-alert-banner" class="hidden mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 rounded-2xl shadow-sm text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shrink-0 text-lg shadow-sm">
+                    <i class="fa-solid fa-bell animate-bounce"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm text-amber-950" id="banner-title">Avvisi e Scadenze Attive</h4>
+                    <p class="text-xs text-amber-800" id="banner-desc">Hai buoni sconto in scadenza e prodotti in dispensa da consumare a breve!</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 self-end sm:self-center">
+                <button onclick="switchTab('coupons')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all">
+                    Vedi Buoni
+                </button>
+                <button onclick="switchTab('pantry')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all">
+                    Vedi Scorte
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 1: DASHBOARD & ANALISI CONSUMI -->
+        <section id="tab-dashboard" class="tab-content space-y-6 animate-fade-in">
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500">Spesa Mese Corrente</p>
+                        <p id="kpi-month-total" class="text-xl font-bold text-slate-800">€ 0.00</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500">Bollette Mese / Scadenza</p>
+                        <p id="kpi-bills-total" class="text-xl font-bold text-slate-800">€ 0.00</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500">Buoni Sconto Attivi</p>
+                        <p id="kpi-coupons-active" class="text-xl font-bold text-slate-800">0 disponibili</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-apple-whole"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500">Scadenze Dispensa (7gg)</p>
+                        <p id="kpi-pantry-expiring" class="text-xl font-bold text-slate-800">0 prodotti</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sezione Grafici e Consumi -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Grafico Categorie Spese -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-600"></i> Ripartizione Categorie Spese
+                    </h3>
+                    <div class="h-64 relative flex-grow flex items-center justify-center">
+                        <canvas id="chart-categories"></canvas>
+                    </div>
+                </div>
+
+                <!-- Grafico Componenti Famiglia -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-indigo-600"></i> Spese per Componente Famiglia
+                    </h3>
+                    <div class="h-64 relative flex-grow flex items-center justify-center">
+                        <canvas id="chart-members"></canvas>
+                    </div>
+                </div>
+
+                <!-- Analisi Prodotti Più Consumati / Ricorrenti -->
+                <div class="lg:col-span-12 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-fire text-amber-500"></i> Stima Consumi & Prodotti Più Acquistati
+                            </h3>
+                            <p class="text-xs text-slate-500">Classifica degli articoli acquistati più di frequente per ottimizzare le scorte di casa.</p>
+                        </div>
+                        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-semibold border border-indigo-100">
+                            Basato sugli scontrini registrati
+                        </span>
+                    </div>
+
+                    <div id="top-products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <!-- Popolato dinamicamente -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 2: AI SCANNER (SCONTRINI E BOLLETTE) -->
+        <section id="tab-scanner" class="tab-content hidden space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Colonna Sinistra: Upload & Selezione Tipo Documento -->
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Scanner AI Documenti
+                        </h2>
+                        <p class="text-xs text-slate-500 mb-4">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
+
+                        <!-- Selezione Tipo Documento -->
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <button id="doc-type-receipt" onclick="setDocType('receipt')" class="p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700">
+                                <i class="fa-solid fa-receipt"></i> Scontrino Spesa
+                            </button>
+                            <button id="doc-type-bill" onclick="setDocType('bill')" class="p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Bolletta Utenza
+                            </button>
+                        </div>
+
+                        <!-- Dropzone File / Foto -->
+                        <div id="scanner-dropzone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 transition-all rounded-xl p-6 text-center cursor-pointer min-h-[220px] flex flex-col items-center justify-center">
+                            <input type="file" id="scanner-file-input" accept="image/*,application/pdf" capture="environment" class="hidden" onchange="handleScannerFileSelect(event)">
+                            
+                            <div id="scanner-upload-placeholder" class="space-y-3">
+                                <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+                                    <i id="doc-icon-placeholder" class="fa-solid fa-cloud-arrow-up"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-700">Clicca o trascina qui la foto/PDF</p>
+                                    <p class="text-xs text-slate-500 mt-1">Scontrino o Bolletta (Luce, Gas, Acqua, etc.)</p>
+                                </div>
+                            </div>
+
+                            <!-- Preview File -->
+                            <div id="scanner-preview-container" class="hidden relative w-full">
+                                <img id="scanner-img-preview" src="" alt="Preview" class="max-h-60 mx-auto rounded-lg shadow object-contain">
+                                <div id="scanner-pdf-preview" class="hidden p-4 bg-slate-100 rounded-lg text-slate-700 text-xs font-semibold flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i> Documento PDF Caricato
+                                </div>
+                                <button onclick="resetScanner(event)" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow transition-all text-xs" title="Rimuovi file">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bottone Analisi AI -->
+                        <button id="btn-run-ai" onclick="analyzeDocumentWithGemini()" disabled class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Analizza con Gemini AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Colonna Destra: Modifica Dati Estratti -->
+                <div class="lg:col-span-7">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-full flex flex-col">
+                        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+                            <div>
+                                <h3 id="form-title" class="text-base font-bold text-slate-800">Verifica Dati Rilevati</h3>
+                                <p class="text-xs text-slate-500">Controlla o completa le informazioni estratte prima del salvataggio.</p>
+                            </div>
+                            <span id="ai-status-tag" class="hidden px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                                <i class="fa-solid fa-check-circle"></i> Elaborato
+                            </span>
+                        </div>
+
+                        <!-- Spinner AI -->
+                        <div id="ai-loading-spinner" class="hidden my-auto py-12 text-center">
+                            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
+                            <p class="text-sm font-semibold text-slate-700">Analisi del documento con Gemini AI...</p>
+                            <p class="text-xs text-slate-500 mt-1">Sto estraendo fornitori, importi, scadenze e prodotti</p>
+                        </div>
+
+                        <!-- FORM DINAMICO: SCONTRINO -->
+                        <div id="form-receipt-container" class="space-y-4 flex-grow">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Spesa</label>
+                                    <input type="date" id="rcpt-date" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Esercente / Negozio</label>
+                                    <input type="text" id="rcpt-store" placeholder="Es. Eurospar, Coop..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Acquistato da</label>
+                                    <select id="rcpt-member" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <option value="Mamma">👩 Mamma</option>
+                                        <option value="Papà">👨 Papà</option>
+                                        <option value="Figlio/a">🧒 Figlio/a</option>
+                                        <option value="Famiglia" selected>🏡 Comune / Famiglia</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Tabella Articoli Scontrino -->
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-xs font-semibold text-slate-600 uppercase">Articoli nello Scontrino</label>
+                                    <button onclick="addRcptItemRow()" class="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1">
+                                        <i class="fa-solid fa-plus-circle"></i> Aggiungi Articolo
+                                    </button>
+                                </div>
+                                <div class="overflow-x-auto max-h-[220px] overflow-y-auto border border-slate-200 rounded-xl">
+                                    <table class="w-full text-left border-collapse text-xs">
+                                        <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 font-semibold text-slate-600">
+                                            <tr>
+                                                <th class="p-2">Prodotto</th>
+                                                <th class="p-2 w-32">Categoria</th>
+                                                <th class="p-2 w-20 text-right">Prezzo (€)</th>
+                                                <th class="p-2 w-28 text-center">Aggiungi a Dispensa?</th>
+                                                <th class="p-2 w-8"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rcpt-items-tbody" class="divide-y divide-slate-100">
+                                            <!-- Righe generate -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500">Categoria Prevalente</label>
+                                    <select id="rcpt-main-cat" class="text-xs border border-slate-300 rounded-lg p-1.5 bg-white">
+                                        <option value="Alimentari">🛒 Alimentari & Spesa</option>
+                                        <option value="Casa">🏠 Casa & Manutenzione</option>
+                                        <option value="Abbigliamento">👕 Abbigliamento</option>
+                                        <option value="Salute">💊 Salute & Farmacia</option>
+                                        <option value="Svago">🎉 Svago & Tempo Libero</option>
+                                        <option value="Trasporti">🚗 Trasporti & Carburante</option>
+                                        <option value="Altro">📦 Altro</option>
+                                    </select>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-semibold text-slate-500 block">Totale Scontrino</span>
+                                    <span id="rcpt-total-val" class="text-xl font-bold text-indigo-600">€ 0.00</span>
+                                </div>
+                            </div>
+
+                            <button onclick="saveReceiptEntry()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
+                                <i class="fa-solid fa-floppy-disk"></i> Salva Spesa & Aggiorna Dispensa
+                            </button>
+                        </div>
+
+                        <!-- FORM DINAMICO: BOLLETTA -->
+                        <div id="form-bill-container" class="hidden space-y-4 flex-grow">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Ente / Fornitore</label>
+                                    <input type="text" id="bill-provider" placeholder="Es. Enel, A2A, Servizio Elettrico..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo Utenza</label>
+                                    <select id="bill-type" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <option value="Luce">⚡ Luce / Elettricità</option>
+                                        <option value="Gas">🔥 Gas Riscaldamento</option>
+                                        <option value="Acqua">💧 Acqua</option>
+                                        <option value="Internet/Telefono">🌐 Internet & Telefono</option>
+                                        <option value="Rifiuti/TARI">🗑️ Rifiuti (TARI)</option>
+                                        <option value="Altro">📑 Altro / Condominio</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Importo Bolletta (€)</label>
+                                    <input type="number" step="0.01" id="bill-amount" placeholder="0.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Scadenza Pagamento</label>
+                                    <input type="date" id="bill-due-date" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Periodo di Riferimento / Note</label>
+                                    <input type="text" id="bill-period" placeholder="Es. Bimester Gen-Feb 2026 (Consumo 450 kWh)" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Stato Pagamento</label>
+                                    <select id="bill-status" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white font-semibold">
+                                        <option value="DA_PAGARE" class="text-amber-600">⏳ Da Pagare</option>
+                                        <option value="PAGATA" class="text-emerald-600">✅ Pagata</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button onclick="saveBillEntry()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs mt-auto">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Salva Bolletta nello Scadenziario
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 3: ARCHIVIO SPESE & SCADENZIARIO BOLLETTE -->
+        <section id="tab-archive" class="tab-content hidden space-y-6 animate-fade-in">
+            
+            <!-- Sub-tabs Archivio -->
+            <div class="flex border-b border-slate-200 gap-4">
+                <button onclick="switchArchiveSubTab('receipts')" id="subtab-btn-receipts" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2">
+                    <i class="fa-solid fa-receipt"></i> Scontrini & Spese
+                </button>
+                <button onclick="switchArchiveSubTab('bills')" id="subtab-btn-bills" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Scadenziario Bollette
+                </button>
+            </div>
+
+            <!-- SUBTAB SCONTRINI -->
+            <div id="subtab-receipts" class="space-y-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <input type="text" id="arch-search" oninput="renderReceiptsArchive()" placeholder="Cerca negozio o prodotto..." class="text-xs border border-slate-300 rounded-lg p-2">
+                    <select id="arch-category" onchange="renderReceiptsArchive()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
+                        <option value="ALL">Tutte le Categorie</option>
+                        <option value="Alimentari">🛒 Alimentari</option>
+                        <option value="Casa">🏠 Casa</option>
+                        <option value="Salute">💊 Salute</option>
+                        <option value="Svago">🎉 Svago</option>
+                        <option value="Trasporti">🚗 Trasporti</option>
+                        <option value="Altro">📦 Altro</option>
+                    </select>
+                    <select id="arch-member" onchange="renderReceiptsArchive()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
+                        <option value="ALL">Tutti i Componenti</option>
+                        <option value="Mamma">👩 Mamma</option>
+                        <option value="Papà">👨 Papà</option>
+                        <option value="Figlio/a">🧒 Figlio/a</option>
+                        <option value="Famiglia">🏡 Famiglia</option>
+                    </select>
+                    <button onclick="exportCSV()" class="text-xs bg-slate-100 hover:bg-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-300 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Esporta CSV
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
+                            <tr>
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Esercente</th>
+                                <th class="p-3">Componente</th>
+                                <th class="p-3">Categoria</th>
+                                <th class="p-3">Articoli</th>
+                                <th class="p-3 text-right">Totale</th>
+                                <th class="p-3 text-center">Azione</th>
+                            </tr>
+                        </thead>
+                        <tbody id="arch-receipts-tbody" class="divide-y divide-slate-100">
+                            <!-- Popolato via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUBTAB BOLLETTE -->
+            <div id="subtab-bills" class="hidden space-y-4">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
+                            <tr>
+                                <th class="p-3">Fornitore</th>
+                                <th class="p-3">Tipo Utenza</th>
+                                <th class="p-3">Scadenza</th>
+                                <th class="p-3">Note / Periodo</th>
+                                <th class="p-3">Stato</th>
+                                <th class="p-3 text-right">Importo</th>
+                                <th class="p-3 text-center">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="arch-bills-tbody" class="divide-y divide-slate-100">
+                            <!-- Popolato via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 4: WALLET BUONI SCONTO & ALERT -->
+        <section id="tab-coupons" class="tab-content hidden space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Form Aggiunta Buono -->
+                <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit space-y-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-amber-500"></i> Aggiungi Buono Sconto
+                    </h3>
+                    <p class="text-xs text-slate-500">Registra i coupon del supermercato (es. Eurospar, Coop) per ricevere avvisi di utilizzo.</p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Supermercato / Negozio</label>
+                            <input type="text" id="cpn-store" placeholder="Es. Eurospar, Esselunga..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Valore Sconto (€)</label>
+                            <input type="number" step="0.5" id="cpn-discount" placeholder="Es. 6.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Spesa Minima Richiesta (€)</label>
+                            <input type="number" step="1" id="cpn-min-spend" placeholder="Es. 25.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Valido fino al (Scadenza)</label>
+                            <input type="date" id="cpn-expiry" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Note o Condizioni Particolari</label>
+                            <input type="text" id="cpn-notes" placeholder="Es. Valido solo il Giovedì con carta fedeltà" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
+                        </div>
+
+                        <button onclick="saveCoupon()" class="w-full bg-amber-500 hover:bg-amber-600 text-indigo-950 font-bold py-2.5 rounded-xl shadow transition-all text-xs flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-ticket"></i> Salva Buono nel Wallet
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista Buoni Attivi e Suggerimenti -->
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-wallet text-indigo-600"></i> Buoni Sconto & Promemoria Spesa
+                            </h3>
+                            <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full" id="active-coupons-count">0 Attivi</span>
+                        </div>
+
+                        <div id="coupons-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Cards generate dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 5: DISPENSA & SCORTE CON DATE DI SCADENZA -->
+        <section id="tab-pantry" class="tab-content hidden space-y-6 animate-fade-in">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-basket-shopping text-emerald-600"></i> Dispensa & Gestione Scorte
+                        </h3>
+                        <p class="text-xs text-slate-500">Tieni traccia dei prodotti acquistati e monitora le scadenze per evitare sprechi.</p>
+                    </div>
+                    <button onclick="openManualPantryModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-3 rounded-xl shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Aggiungi Prodotto Manuale
+                    </button>
+                </div>
+
+                <!-- Filtri Dispensa -->
+                <div class="flex gap-2">
+                    <button onclick="filterPantry('ALL')" id="pantry-filter-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">Tutti i Prodotti</button>
+                    <button onclick="filterPantry('EXPIRING')" id="pantry-filter-expiring" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">⚠️ In Scadenza (7gg)</button>
+                </div>
+
+                <!-- Tabella Scorte -->
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
+                            <tr>
+                                <th class="p-3">Prodotto</th>
+                                <th class="p-3">Categoria</th>
+                                <th class="p-3">Data Acquisto</th>
+                                <th class="p-3">Data Scadenza</th>
+                                <th class="p-3">Quantità / Scorta</th>
+                                <th class="p-3 text-center">Azione</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pantry-tbody" class="divide-y divide-slate-100">
+                            <!-- Popolato via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Mobile Bottom Nav -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-xl z-40 flex justify-around py-2 text-[10px] font-semibold text-slate-500">
+        <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="flex flex-col items-center text-indigo-600">
+            <i class="fa-solid fa-chart-line text-base mb-0.5"></i> Home
+        </button>
+        <button onclick="switchTab('scanner')" id="mobile-nav-scanner" class="flex flex-col items-center">
+            <i class="fa-solid fa-wand-magic-sparkles text-base mb-0.5 text-amber-500"></i> Scanner
+        </button>
+        <button onclick="switchTab('archive')" id="mobile-nav-archive" class="flex flex-col items-center">
+            <i class="fa-solid fa-box-archive text-base mb-0.5"></i> Archivio
+        </button>
+        <button onclick="switchTab('coupons')" id="mobile-nav-coupons" class="flex flex-col items-center">
+            <i class="fa-solid fa-ticket text-base mb-0.5 text-amber-500"></i> Buoni
+        </button>
+        <button onclick="switchTab('pantry')" id="mobile-nav-pantry" class="flex flex-col items-center">
+            <i class="fa-solid fa-basket-shopping text-base mb-0.5 text-emerald-500"></i> Dispensa
+        </button>
+    </div>
+
+    <!-- Modale Dettaglio Scontrino -->
+    <div id="receipt-detail-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base" id="modal-rcpt-store">Dettaglio Spesa</h3>
+                <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="text-xs space-y-1 text-slate-600">
+                <p><strong>Data:</strong> <span id="modal-rcpt-date"></span></p>
+                <p><strong>Acquistato da:</strong> <span id="modal-rcpt-member"></span></p>
+                <p><strong>Categoria:</strong> <span id="modal-rcpt-cat"></span></p>
+            </div>
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-slate-50 text-slate-600 border-b">
+                        <tr>
+                            <th class="p-2">Prodotto</th>
+                            <th class="p-2">Cat.</th>
+                            <th class="p-2 text-right">Prezzo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-rcpt-items-list" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-between items-center font-bold text-slate-800 border-t pt-2">
+                <span>Totale:</span>
+                <span id="modal-rcpt-total" class="text-indigo-600 text-lg">€ 0.00</span>
+            </div>
+            <button onclick="closeReceiptModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-xl text-xs">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Prodotto Dispensa Manuale -->
+    <div id="pantry-manual-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Aggiungi Prodotto in Dispensa</h3>
+                <button onclick="closePantryModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome Prodotto</label>
+                    <input type="text" id="pantry-manual-name" placeholder="Es. Latte Intero, Pasta..." class="w-full text-xs border border-slate-300 rounded-lg p-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
+                    <select id="pantry-manual-cat" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white">
+                        <option value="Alimentari">🛒 Alimentari</option>
+                        <option value="Casa">🏠 Casa</option>
+                        <option value="Salute">💊 Salute</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Scadenza</label>
+                    <input type="date" id="pantry-manual-expiry" class="w-full text-xs border border-slate-300 rounded-lg p-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Quantità</label>
+                    <input type="number" id="pantry-manual-qty" value="1" min="1" class="w-full text-xs border border-slate-300 rounded-lg p-2">
+                </div>
+            </div>
+            <button onclick="saveManualPantryItem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow">Salva in Dispensa</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-20 md:bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs hidden z-50 animate-fade-in border border-slate-700">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-message">Operazione completata</span>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT APP -->
+    <script>
+        // Data Stores (LocalStorage)
+        let receipts = JSON.parse(localStorage.getItem('fb_receipts') || '[]');
+        let bills = JSON.parse(localStorage.getItem('fb_bills') || '[]');
+        let coupons = JSON.parse(localStorage.getItem('fb_coupons') || '[]');
+        let pantry = JSON.parse(localStorage.getItem('fb_pantry') || '[]');
+
+        // Runtime state
+        let currentDocType = 'receipt'; // 'receipt' or 'bill'
+        let currentFileBase64 = null;
+        let currentFileMime = null;
+        let chartCatInstance = null;
+        let chartMemInstance = null;
+        let activePantryFilter = 'ALL';
+
+        window.onload = function() {
+            // Imposta date di default
+            document.getElementById('rcpt-date').valueAsDate = new Date();
+            document.getElementById('bill-due-date').valueAsDate = new Date();
+            
+            // Inizializza riga scontrino vuota
+            addRcptItemRow();
+
+            // Renderizza iniziale
+            updateGlobalAlerts();
+            renderDashboard();
+            renderReceiptsArchive();
+            renderBillsArchive();
+            renderCoupons();
+            renderPantry();
+        };
+
+        // Navigation Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Header Nav styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-800', 'text-white');
+                btn.classList.add('text-indigo-100');
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('bg-indigo-800', 'text-white');
+
+            // Trigger re-renders se necessario
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'archive') { renderReceiptsArchive(); renderBillsArchive(); }
+            if (tabId === 'coupons') renderCoupons();
+            if (tabId === 'pantry') renderPantry();
+        }
+
+        function syncMember(val) {
+            document.getElementById('rcpt-member').value = val;
+        }
+
+        // --- GLOBAL ALERTS AND PROMEMORIA ---
+        function updateGlobalAlerts() {
+            const today = new Date().toISOString().slice(0, 10);
+            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+            // Buoni in scadenza nei prossimi 7 giorni
+            const expiringCoupons = coupons.filter(c => c.status === 'ATTIVO' && c.expiryDate <= in7Days);
+            
+            // Prodotti dispensa in scadenza nei prossimi 7 giorni
+            const expiringPantry = pantry.filter(p => p.expiryDate && p.expiryDate <= in7Days);
+
+            // Bollette da pagare
+            const unpaidBills = bills.filter(b => b.status === 'DA_PAGARE');
+
+            const banner = document.getElementById('global-alert-banner');
+            const couponBadge = document.getElementById('coupon-alert-badge');
+            const pantryBadge = document.getElementById('pantry-alert-badge');
+
+            if (expiringCoupons.length > 0) couponBadge.classList.remove('hidden');
+            else couponBadge.classList.add('hidden');
+
+            if (expiringPantry.length > 0) pantryBadge.classList.remove('hidden');
+            else pantryBadge.classList.add('hidden');
+
+            if (expiringCoupons.length > 0 || expiringPantry.length > 0 || unpaidBills.length > 0) {
+                banner.classList.remove('hidden');
+                document.getElementById('banner-desc').innerText = 
+                    `Ci sono ${expiringCoupons.length} buoni in scadenza, ${expiringPantry.length} prodotti da consumare a breve e ${unpaidBills.length} bollette da pagare.`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        // --- SCANNER AI (GEMINI INTEGRATION) ---
+        function setDocType(type) {
+            currentDocType = type;
+            const btnReceipt = document.getElementById('doc-type-receipt');
+            const btnBill = document.getElementById('doc-type-bill');
+            const formReceipt = document.getElementById('form-receipt-container');
+            const formBill = document.getElementById('form-bill-container');
+            const iconPlaceholder = document.getElementById('doc-icon-placeholder');
+
+            if (type === 'receipt') {
+                btnReceipt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700";
+                btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
+                formReceipt.classList.remove('hidden');
+                formBill.classList.add('hidden');
+                iconPlaceholder.className = "fa-solid fa-receipt";
+                document.getElementById('form-title').innerText = "Verifica Dati Scontrino";
+            } else {
+                btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-amber-600 bg-amber-50 text-amber-700";
+                btnReceipt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
+                formBill.classList.remove('hidden');
+                formReceipt.classList.add('hidden');
+                iconPlaceholder.className = "fa-solid fa-file-invoice-dollar";
+                document.getElementById('form-title').innerText = "Verifica Dati Bolletta";
+            }
+        }
+
+        const dropzone = document.getElementById('scanner-dropzone');
+        const scannerFileInput = document.getElementById('scanner-file-input');
+
+        dropzone.addEventListener('click', () => scannerFileInput.click());
+
+        function handleScannerFileSelect(e) {
+            if (e.target.files.length > 0) processScannerFile(e.target.files[0]);
+        }
+
+        function processScannerFile(file) {
+            currentFileMime = file.type;
+            const reader = new FileReader();
+
+            if (file.type === 'application/pdf') {
+                reader.onload = function(e) {
+                    currentFileBase64 = e.target.result;
+                    document.getElementById('scanner-upload-placeholder').classList.add('hidden');
+                    document.getElementById('scanner-preview-container').classList.remove('hidden');
+                    document.getElementById('scanner-img-preview').classList.add('hidden');
+                    document.getElementById('scanner-pdf-preview').classList.remove('hidden');
+                    document.getElementById('btn-run-ai').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('image/')) {
+                reader.onload = function(e) {
+                    currentFileBase64 = e.target.result;
+                    document.getElementById('scanner-img-preview').src = currentFileBase64;
+                    document.getElementById('scanner-upload-placeholder').classList.add('hidden');
+                    document.getElementById('scanner-preview-container').classList.remove('hidden');
+                    document.getElementById('scanner-img-preview').classList.remove('hidden');
+                    document.getElementById('scanner-pdf-preview').classList.add('hidden');
+                    document.getElementById('btn-run-ai').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showToast('Carica una foto o un PDF valido', 'error');
+            }
+        }
+
+        function resetScanner(e) {
+            if(e) e.stopPropagation();
+            currentFileBase64 = null;
+            currentFileMime = null;
+            scannerFileInput.value = '';
+            document.getElementById('scanner-upload-placeholder').classList.remove('hidden');
+            document.getElementById('scanner-preview-container').classList.add('hidden');
+            document.getElementById('btn-run-ai').disabled = true;
+            document.getElementById('ai-status-tag').classList.add('hidden');
+        }
+
+        async function analyzeDocumentWithGemini() {
+            if (!currentFileBase64) return;
+
+            document.getElementById('ai-loading-spinner').classList.remove('hidden');
+            document.getElementById('btn-run-ai').disabled = true;
+
+            try {
+                const base64Clean = currentFileBase64.split(',')[1];
+                let prompt = '';
+                let schema = {};
+
+                if (currentDocType === 'receipt') {
+                    prompt = `Analizza questa foto di scontrino della spesa ed estrai:
+                    1. "store": Nome del negozio/supermercato.
+                    2. "date": Data spesa (YYYY-MM-DD).
+                    3. "mainCategory": Categoria tra ["Alimentari", "Casa", "Abbigliamento", "Salute", "Svago", "Trasporti", "Altro"].
+                    4. "items": Lista di articoli con: "name" (nome), "price" (prezzo numerico), "category" (categoria articolo), e "suggestExpiryDays" (numero stimato di giorni di durata prima della scadenza se cibo fresco/deperibile, es. latte 7, pane 3, carne 4, oppure 0 se non deperibile).
+                    5. "total": Totale complessivo scontrino.`;
+
+                    schema = {
+                        type: "OBJECT",
+                        properties: {
+                            store: { type: "STRING" },
+                            date: { type: "STRING" },
+                            mainCategory: { type: "STRING" },
+                            total: { type: "NUMBER" },
+                            items: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        name: { type: "STRING" },
+                                        price: { type: "NUMBER" },
+                                        category: { type: "STRING" },
+                                        suggestExpiryDays: { type: "NUMBER" }
+                                    },
+                                    propertyOrdering: ["name", "price", "category", "suggestExpiryDays"]
+                                }
+                            }
+                        },
+                        propertyOrdering: ["store", "date", "mainCategory", "total", "items"]
+                    };
+                } else {
+                    prompt = `Analizza questa bolletta o documento di utenza ed estrai:
+                    1. "provider": Ente o fornitore del servizio (es. Enel, A2A, Vodafone).
+                    2. "type": Tipo di utenza tra ["Luce", "Gas", "Acqua", "Internet/Telefono", "Rifiuti/TARI", "Altro"].
+                    3. "amount": Importo da pagare (numero).
+                    4. "dueDate": Data di scadenza del pagamento (YYYY-MM-DD).
+                    5. "period": Periodo o note sui consumi (es. "Bimestre Gen-Feb, consumo 320 kWh").`;
+
+                    schema = {
+                        type: "OBJECT",
+                        properties: {
+                            provider: { type: "STRING" },
+                            type: { type: "STRING" },
+                            amount: { type: "NUMBER" },
+                            dueDate: { type: "STRING" },
+                            period: { type: "STRING" }
+                        },
+                        propertyOrdering: ["provider", "type", "amount", "dueDate", "period"]
+                    };
+                }
+
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType: currentFileMime || 'image/jpeg', data: base64Clean } }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: schema
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) throw new Error("Errore chiamata Gemini");
+
+                const resJson = await resp.json();
+                const jsonText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const parsed = JSON.parse(jsonText);
+                    if (currentDocType === 'receipt') populateReceiptForm(parsed);
+                    else populateBillForm(parsed);
+
+                    document.getElementById('ai-status-tag').classList.remove('hidden');
+                    showToast('Documento analizzato con successo dall\'AI!');
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast('Errore durante l\'analisi AI. Verifica il file caricato.', 'error');
+            } finally {
+                document.getElementById('ai-loading-spinner').classList.add('hidden');
+                document.getElementById('btn-run-ai').disabled = false;
+            }
+        }
+
+        // Popola Form Scontrino
+        function populateReceiptForm(data) {
+            if (data.store) document.getElementById('rcpt-store').value = data.store;
+            if (data.date) document.getElementById('rcpt-date').value = data.date;
+            if (data.mainCategory) document.getElementById('rcpt-main-cat').value = data.mainCategory;
+
+            const tbody = document.getElementById('rcpt-items-tbody');
+            tbody.innerHTML = '';
+
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    addRcptItemRow(item.name, item.price, item.category, item.suggestExpiryDays || 0);
+                });
+            } else {
+                addRcptItemRow();
+            }
+            calcRcptTotal();
+        }
+
+        // Popola Form Bolletta
+        function populateBillForm(data) {
+            if (data.provider) document.getElementById('bill-provider').value = data.provider;
+            if (data.type) document.getElementById('bill-type').value = data.type;
+            if (data.amount) document.getElementById('bill-amount').value = data.amount;
+            if (data.dueDate) document.getElementById('bill-due-date').value = data.dueDate;
+            if (data.period) document.getElementById('bill-period').value = data.period;
+        }
+
+        // Gestione Tabella Scontrino
+        function addRcptItemRow(name = '', price = '', category = 'Alimentari', expiryDays = 0) {
+            const tbody = document.getElementById('rcpt-items-tbody');
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td class="p-1.5">
+                    <input type="text" value="${name}" placeholder="Nome prodotto" oninput="calcRcptTotal()" class="item-name w-full text-xs border rounded p-1">
+                </td>
+                <td class="p-1.5">
+                    <select class="item-cat w-full text-xs border rounded p-1 bg-white">
+                        <option value="Alimentari" ${category==='Alimentari'?'selected':''}>Alimentari</option>
+                        <option value="Casa" ${category==='Casa'?'selected':''}>Casa</option>
+                        <option value="Salute" ${category==='Salute'?'selected':''}>Salute</option>
+                        <option value="Svago" ${category==='Svago'?'selected':''}>Svago</option>
+                        <option value="Altro" ${category==='Altro'?'selected':''}>Altro</option>
+                    </select>
+                </td>
+                <td class="p-1.5">
+                    <input type="number" step="0.01" value="${price}" placeholder="0.00" oninput="calcRcptTotal()" class="item-price w-full text-xs border rounded p-1 text-right font-semibold">
+                </td>
+                <td class="p-1.5 text-center">
+                    <input type="checkbox" ${expiryDays > 0 ? 'checked' : ''} class="item-pantry-check w-4 h-4 text-emerald-600 rounded cursor-pointer" title="Aggiungi alla dispensa">
+                    <input type="hidden" class="item-expiry-days" value="${expiryDays}">
+                </td>
+                <td class="p-1.5 text-center">
+                    <button onclick="this.closest('tr').remove(); calcRcptTotal();" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            calcRcptTotal();
+        }
+
+        function calcRcptTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-price').forEach(inp => {
+                total += parseFloat(inp.value) || 0;
+            });
+            document.getElementById('rcpt-total-val').innerText = `€ ${total.toFixed(2)}`;
+            return total;
+        }
+
+        // --- SALVATAGGIO SCONTRINO & DISPENSA ---
+        function saveReceiptEntry() {
+            const store = document.getElementById('rcpt-store').value.trim();
+            const date = document.getElementById('rcpt-date').value;
+            const member = document.getElementById('rcpt-member').value;
+            const mainCategory = document.getElementById('rcpt-main-cat').value;
+            const total = calcRcptTotal();
+
+            if (!store || !date) {
+                showToast('Compila il negozio e la data.', 'error');
+                return;
+            }
+
+            const items = [];
+            const rows = document.querySelectorAll('#rcpt-items-tbody tr');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.item-name').value.trim();
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const category = row.querySelector('.item-cat').value;
+                const addToPantry = row.querySelector('.item-pantry-check').checked;
+                const expiryDays = parseInt(row.querySelector('.item-expiry-days').value) || 7;
+
+                if (name) {
+                    items.push({ name, price, category });
+
+                    // Aggiungi in Dispensa se richiesto
+                    if (addToPantry) {
+                        const expiryDateObj = new Date(Date.now() + (expiryDays || 7) * 24 * 60 * 60 * 1000);
+                        pantry.unshift({
+                            id: Date.now().toString() + Math.random(),
+                            name: name,
+                            category: category,
+                            purchaseDate: date,
+                            expiryDate: expiryDateObj.toISOString().slice(0, 10),
+                            quantity: 1
+                        });
+                    }
+                }
+            });
+
+            if (items.length === 0) {
+                showToast('Inserisci almeno un articolo.', 'error');
+                return;
+            }
+
+            const receiptObj = {
+                id: Date.now().toString(),
+                store,
+                date,
+                member,
+                mainCategory,
+                total,
+                items
+            };
+
+            receipts.unshift(receiptObj);
+            localStorage.setItem('fb_receipts', JSON.stringify(receipts));
+            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
+
+            showToast('Scontrino e prodotti in dispensa salvati!');
+            resetScanner();
+            renderDashboard();
+            renderPantry();
+            updateGlobalAlerts();
+        }
+
+        // --- SALVATAGGIO BOLLETTA ---
+        function saveBillEntry() {
+            const provider = document.getElementById('bill-provider').value.trim();
+            const type = document.getElementById('bill-type').value;
+            const amount = parseFloat(document.getElementById('bill-amount').value) || 0;
+            const dueDate = document.getElementById('bill-due-date').value;
+            const period = document.getElementById('bill-period').value.trim();
+            const status = document.getElementById('bill-status').value;
+
+            if (!provider || !dueDate || amount <= 0) {
+                showToast('Compila tutti i campi della bolletta.', 'error');
+                return;
+            }
+
+            const billObj = {
+                id: Date.now().toString(),
+                provider,
+                type,
+                amount,
+                dueDate,
+                period,
+                status
+            };
+
+            bills.unshift(billObj);
+            localStorage.setItem('fb_bills', JSON.stringify(bills));
+
+            showToast('Bolletta salvata nello scadenziario!');
+            resetScanner();
+            renderDashboard();
+            renderBillsArchive();
+            updateGlobalAlerts();
+        }
+
+        // --- DASHBOARD & RENDERING GRAFICI ---
+        function renderDashboard() {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            // KPI Spesa Mese
+            const monthReceipts = receipts.filter(r => r.date.startsWith(currentMonth));
+            const totalMonth = monthReceipts.reduce((sum, r) => sum + r.total, 0);
+            document.getElementById('kpi-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
+
+            // KPI Bollette Mese
+            const totalBills = bills.filter(b => b.status === 'DA_PAGARE').reduce((sum, b) => sum + b.amount, 0);
+            document.getElementById('kpi-bills-total').innerText = `€ ${totalBills.toFixed(2)}`;
+
+            // KPI Buoni
+            const activeCoupons = coupons.filter(c => c.status === 'ATTIVO').length;
+            document.getElementById('kpi-coupons-active').innerText = `${activeCoupons} attivi`;
+
+            // KPI Dispensa
+            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            const expiringPantryCount = pantry.filter(p => p.expiryDate && p.expiryDate <= in7Days).length;
+            document.getElementById('kpi-pantry-expiring').innerText = `${expiringPantryCount} prodotti`;
+
+            // Chart Categorie
+            const catTotals = {};
+            receipts.forEach(r => {
+                catTotals[r.mainCategory] = (catTotals[r.mainCategory] || 0) + r.total;
+            });
+
+            if (chartCatInstance) chartCatInstance.destroy();
+            const ctxCat = document.getElementById('chart-categories').getContext('2d');
+            chartCatInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catTotals).length ? Object.keys(catTotals) : ['Nessun dato'],
+                    datasets: [{
+                        data: Object.values(catTotals).length ? Object.values(catTotals) : [1],
+                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#f43f5e', '#3b82f6', '#64748b']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Chart Componenti
+            const memTotals = { 'Mamma': 0, 'Papà': 0, 'Figlio/a': 0, 'Famiglia': 0 };
+            receipts.forEach(r => { memTotals[r.member] = (memTotals[r.member] || 0) + r.total; });
+
+            if (chartMemInstance) chartMemInstance.destroy();
+            const ctxMem = document.getElementById('chart-members').getContext('2d');
+            chartMemInstance = new Chart(ctxMem, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(memTotals),
+                    datasets: [{
+                        label: 'Totale Speso (€)',
+                        data: Object.values(memTotals),
+                        backgroundColor: '#4f46e5',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // Analisi Stima Consumi Prodotti Più Acquistati
+            const productCounts = {};
+            receipts.forEach(r => {
+                r.items.forEach(i => {
+                    const cleanName = i.name.toLowerCase().trim();
+                    if (!productCounts[cleanName]) productCounts[cleanName] = { name: i.name, count: 0, totalSpend: 0 };
+                    productCounts[cleanName].count += 1;
+                    productCounts[cleanName].totalSpend += i.price;
+                });
+            });
+
+            const topProducts = Object.values(productCounts).sort((a, b) => b.count - a.count).slice(0, 6);
+            const container = document.getElementById('top-products-list');
+            container.innerHTML = '';
+
+            if (topProducts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 col-span-3">Nessun dato sui prodotti ancora disponibile.</p>';
+            } else {
+                topProducts.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs';
+                    card.innerHTML = `
+                        <div>
+                            <p class="font-bold text-slate-800 capitalize">${p.name}</p>
+                            <p class="text-[10px] text-slate-500">Acquistato ${p.count} volte</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-indigo-600">€ ${p.totalSpend.toFixed(2)}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        // --- ARCHIVIO & SCADENZIARIO BOLLETTE ---
+        function switchArchiveSubTab(tab) {
+            if (tab === 'receipts') {
+                document.getElementById('subtab-receipts').classList.remove('hidden');
+                document.getElementById('subtab-bills').classList.add('hidden');
+                document.getElementById('subtab-btn-receipts').className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
+                document.getElementById('subtab-btn-bills').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+            } else {
+                document.getElementById('subtab-bills').classList.remove('hidden');
+                document.getElementById('subtab-receipts').classList.add('hidden');
+                document.getElementById('subtab-btn-bills').className = "pb-3 text-sm font-bold border-b-2 border-amber-600 text-amber-600 flex items-center gap-2";
+                document.getElementById('subtab-btn-receipts').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+            }
+        }
+
+        function renderReceiptsArchive() {
+            const tbody = document.getElementById('arch-receipts-tbody');
+            tbody.innerHTML = '';
+
+            const search = document.getElementById('arch-search').value.toLowerCase();
+            const category = document.getElementById('arch-category').value;
+            const member = document.getElementById('arch-member').value;
+
+            const filtered = receipts.filter(r => {
+                const matchSearch = r.store.toLowerCase().includes(search) || r.items.some(i => i.name.toLowerCase().includes(search));
+                const matchCat = category === 'ALL' || r.mainCategory === category;
+                const matchMem = member === 'ALL' || r.member === member;
+                return matchSearch && matchCat && matchMem;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Nessuno scontrino trovato.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium">${r.date}</td>
+                    <td class="p-3 font-bold">${r.store}</td>
+                    <td class="p-3"><span class="bg-slate-100 px-2 py-0.5 rounded-full">${r.member}</span></td>
+                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">${r.mainCategory}</span></td>
+                    <td class="p-3 text-slate-500 max-w-xs truncate">${r.items.map(i=>i.name).join(', ')}</td>
+                    <td class="p-3 text-right font-bold text-indigo-600">€ ${r.total.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="openReceiptModal('${r.id}')" class="text-indigo-600 hover:underline font-semibold mr-2">Vedi</button>
+                        <button onclick="deleteReceipt('${r.id}')" class="text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderBillsArchive() {
+            const tbody = document.getElementById('arch-bills-tbody');
+            tbody.innerHTML = '';
+
+            if (bills.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Nessuna bolletta salvata nello scadenziario.</td></tr>';
+                return;
+            }
+
+            bills.forEach(b => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                const isPaid = b.status === 'PAGATA';
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold">${b.provider}</td>
+                    <td class="p-3"><span class="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-semibold">${b.type}</span></td>
+                    <td class="p-3 font-semibold ${!isPaid ? 'text-red-600' : 'text-slate-600'}">${b.dueDate}</td>
+                    <td class="p-3 text-slate-500 text-[11px]">${b.period || '-'}</td>
+                    <td class="p-3">
+                        <button onclick="toggleBillStatus('${b.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${isPaid ? '✅ PAGATA' : '⏳ DA PAGARE'}
+                        </button>
+                    </td>
+                    <td class="p-3 text-right font-bold text-slate-800">€ ${b.amount.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteBill('${b.id}')" class="text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleBillStatus(id) {
+            const bill = bills.find(b => b.id === id);
+            if (bill) {
+                bill.status = bill.status === 'PAGATA' ? 'DA_PAGARE' : 'PAGATA';
+                localStorage.setItem('fb_bills', JSON.stringify(bills));
+                renderBillsArchive();
+                renderDashboard();
+                updateGlobalAlerts();
+            }
+        }
+
+        function deleteReceipt(id) {
+            if(confirm('Eliminare questo scontrino dall\'archivio?')) {
+                receipts = receipts.filter(r => r.id !== id);
+                localStorage.setItem('fb_receipts', JSON.stringify(receipts));
+                renderReceiptsArchive();
+                renderDashboard();
+            }
+        }
+
+        function deleteBill(id) {
+            if(confirm('Eliminare questa bolletta?')) {
+                bills = bills.filter(b => b.id !== id);
+                localStorage.setItem('fb_bills', JSON.stringify(bills));
+                renderBillsArchive();
+                renderDashboard();
+                updateGlobalAlerts();
+            }
+        }
+
+        // --- BUONI SCONTO & COUPON WALLET ---
+        function saveCoupon() {
+            const store = document.getElementById('cpn-store').value.trim();
+            const discount = parseFloat(document.getElementById('cpn-discount').value) || 0;
+            const minSpend = parseFloat(document.getElementById('cpn-min-spend').value) || 0;
+            const expiryDate = document.getElementById('cpn-expiry').value;
+            const notes = document.getElementById('cpn-notes').value.trim();
+
+            if (!store || discount <= 0 || !expiryDate) {
+                showToast('Inserisci il supermercato, valore sconto e scadenza.', 'error');
+                return;
+            }
+
+            const couponObj = {
+                id: Date.now().toString(),
+                store,
+                discount,
+                minSpend,
+                expiryDate,
+                notes,
+                status: 'ATTIVO'
+            };
+
+            coupons.unshift(couponObj);
+            localStorage.setItem('fb_coupons', JSON.stringify(coupons));
+
+            showToast('Buono salvato nel wallet!');
+            // Reset
+            document.getElementById('cpn-store').value = '';
+            document.getElementById('cpn-discount').value = '';
+            document.getElementById('cpn-min-spend').value = '';
+            document.getElementById('cpn-notes').value = '';
+
+            renderCoupons();
+            renderDashboard();
+            updateGlobalAlerts();
+        }
+
+        function renderCoupons() {
+            const grid = document.getElementById('coupons-grid');
+            grid.innerHTML = '';
+
+            const activeList = coupons.filter(c => c.status === 'ATTIVO');
+            document.getElementById('active-coupons-count').innerText = `${activeList.length} Attivi`;
+
+            if (activeList.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-slate-400 col-span-2 py-6 text-center">Nessun buono sconto salvato. Aggiungine uno dal modulo a sinistra!</p>';
+                return;
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+
+            activeList.forEach(c => {
+                const isNearExpiry = c.expiryDate <= new Date(Date.now() + 5*24*60*60*1000).toISOString().slice(0,10);
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border ${isNearExpiry ? 'bg-amber-50/60 border-amber-300' : 'bg-slate-50 border-slate-200'} shadow-sm space-y-2 relative`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isNearExpiry ? 'bg-amber-200 text-amber-900' : 'bg-indigo-100 text-indigo-700'}">
+                                ${c.store}
+                            </span>
+                            <h4 class="text-lg font-extrabold text-slate-800 mt-1">Sconto € ${c.discount.toFixed(2)}</h4>
+                        </div>
+                        <button onclick="useCoupon('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm">
+                            Usa Ora
+                        </button>
+                    </div>
+
+                    ${c.minSpend > 0 ? `<p class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-cart-shopping text-indigo-500 mr-1"></i> Spesa minima: € ${c.minSpend.toFixed(2)}</p>` : ''}
+                    <p class="text-xs text-slate-600"><i class="fa-solid fa-calendar-day text-amber-600 mr-1"></i> Scadenza: <strong>${c.expiryDate}</strong></p>
+                    ${c.notes ? `<p class="text-[11px] text-slate-500 bg-white p-2 rounded-lg border border-slate-100">${c.notes}</p>` : ''}
+
+                    <button onclick="deleteCoupon('${c.id}')" class="absolute bottom-2 right-2 text-slate-400 hover:text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function useCoupon(id) {
+            const coupon = coupons.find(c => c.id === id);
+            if (coupon) {
+                coupon.status = 'UTILIZZATO';
+                localStorage.setItem('fb_coupons', JSON.stringify(coupons));
+                showToast('Buono contrassegnato come utilizzato!');
+                renderCoupons();
+                renderDashboard();
+                updateGlobalAlerts();
+            }
+        }
+
+        function deleteCoupon(id) {
+            coupons = coupons.filter(c => c.id !== id);
+            localStorage.setItem('fb_coupons', JSON.stringify(coupons));
+            renderCoupons();
+            renderDashboard();
+            updateGlobalAlerts();
+        }
+
+        // --- DISPENSA & SCORTE ---
+        function filterPantry(type) {
+            activePantryFilter = type;
+            document.getElementById('pantry-filter-all').className = type === 'ALL' ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white" : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200";
+            document.getElementById('pantry-filter-expiring').className = type === 'EXPIRING' ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white" : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200";
+            renderPantry();
+        }
+
+        function renderPantry() {
+            const tbody = document.getElementById('pantry-tbody');
+            tbody.innerHTML = '';
+
+            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+            const filtered = pantry.filter(p => {
+                if (activePantryFilter === 'EXPIRING') return p.expiryDate && p.expiryDate <= in7Days;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400">Nessun prodotto presente in dispensa.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 text-xs";
+                const isExpiring = p.expiryDate && p.expiryDate <= in7Days;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800 capitalize">${p.name}</td>
+                    <td class="p-3"><span class="bg-slate-100 px-2 py-0.5 rounded-full">${p.category}</span></td>
+                    <td class="p-3 text-slate-500">${p.purchaseDate || '-'}</td>
+                    <td class="p-3 font-semibold ${isExpiring ? 'text-red-600 font-bold bg-red-50 p-1 rounded' : 'text-slate-700'}">
+                        ${p.expiryDate ? (isExpiring ? `⚠️ ${p.expiryDate}` : p.expiryDate) : 'Senza data'}
+                    </td>
+                    <td class="p-3 font-semibold text-slate-700">${p.quantity || 1} pz</td>
+                    <td class="p-3 text-center">
+                        <button onclick="consumePantryItem('${p.id}')" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-bold px-2.5 py-1 rounded-lg text-[10px]">Consumato</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openManualPantryModal() {
+            document.getElementById('pantry-manual-expiry').valueAsDate = new Date(Date.now() + 7*24*60*60*1000);
+            document.getElementById('pantry-manual-modal').classList.remove('hidden');
+        }
+
+        function closePantryModal() {
+            document.getElementById('pantry-manual-modal').classList.add('hidden');
+        }
+
+        function saveManualPantryItem() {
+            const name = document.getElementById('pantry-manual-name').value.trim();
+            const category = document.getElementById('pantry-manual-cat').value;
+            const expiryDate = document.getElementById('pantry-manual-expiry').value;
+            const quantity = parseInt(document.getElementById('pantry-manual-qty').value) || 1;
+
+            if (!name) {
+                showToast('Inserisci il nome del prodotto.', 'error');
+                return;
+            }
+
+            pantry.unshift({
+                id: Date.now().toString(),
+                name,
+                category,
+                purchaseDate: new Date().toISOString().slice(0, 10),
+                expiryDate,
+                quantity
+            });
+
+            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
+            showToast('Prodotto aggiunto alla dispensa!');
+            closePantryModal();
+            renderPantry();
+            renderDashboard();
+            updateGlobalAlerts();
+        }
+
+        function consumePantryItem(id) {
+            pantry = pantry.filter(p => p.id !== id);
+            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
+            showToast('Prodotto rimosso dalla dispensa.');
+            renderPantry();
+            renderDashboard();
+            updateGlobalAlerts();
+        }
+
+        // --- UTILITY MODALI SCONTRINO & TOAST ---
+        function openReceiptModal(id) {
+            const r = receipts.find(x => x.id === id);
+            if (!r) return;
+
+            document.getElementById('modal-rcpt-store').innerText = r.store;
+            document.getElementById('modal-rcpt-date').innerText = r.date;
+            document.getElementById('modal-rcpt-member').innerText = r.member;
+            document.getElementById('modal-rcpt-cat').innerText = r.mainCategory;
+            document.getElementById('modal-rcpt-total').innerText = `€ ${r.total.toFixed(2)}`;
+
+            const tbody = document.getElementById('modal-rcpt-items-list');
+            tbody.innerHTML = '';
+            r.items.forEach(i => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-medium capitalize">${i.name}</td>
+                    <td class="p-2 text-slate-500">${i.category}</td>
+                    <td class="p-2 text-right font-bold">€ ${i.price.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('receipt-detail-modal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-detail-modal').classList.add('hidden');
+        }
+
+        function exportCSV() {
+            if (receipts.length === 0) {
+                showToast('Nessuna spesa da esportare.', 'error');
+                return;
+            }
+            let csv = "ID,Data,Esercente,Componente,Categoria,Articoli,Totale\n";
+            receipts.forEach(r => {
+                const itemsStr = r.items.map(i => i.name).join(' | ').replace(/"/g, '""');
+                csv += `"${r.id}","${r.date}","${r.store}","${r.member}","${r.mainCategory}","${itemsStr}","${r.total}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `spese_famiglia_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-message');
+
+            text.innerText = msg;
+            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400 text-base' : 'fa-circle-check text-emerald-400 text-base';
+
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+    </script>
+</body>
+</html>
