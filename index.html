@@ -1,1346 +1,427 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FamilyBudget AI - Spese, Bollette & Scorte</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome per le icone -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js per i grafici -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- pdf.js per lettura testo da PDF di bollette -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FamilyBudget - AI Scanner Documenti</title>
+  
+  <!-- Importazione PDF.js tramite CDN per il rendering delle anteprime -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <style>
+    :root {
+      --primary-color: #5142e6;
+      --primary-hover: #4132d6;
+      --bg-color: #f4f5fa;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --accent-gold: #c5820f;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 24px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    /* Tab per tipo documento */
+    .tab-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tab-btn.active {
+      border-color: var(--accent-gold);
+      background: #fffdf5;
+      color: var(--accent-gold);
+    }
+
+    /* Dropzone e Viewer PDF */
+    .dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      background: #f8fafc;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #pdfPreviewContainer {
+      position: relative;
+      width: 100%;
+      height: 360px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #pdfCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .btn-delete {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .btn-ai {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-ai:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-ai:disabled {
+      background: #a5b4fc;
+      cursor: not-allowed;
+    }
+
+    /* Form Layout */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary-color);
+    }
+
+    .btn-save {
+      grid-column: span 2;
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--accent-gold);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .badge-status {
+      align-self: flex-start;
+      margin-left: auto;
+      background: #dcfce7;
+      color: #166534;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-20 md:pb-0">
+<body>
 
-    <!-- Header & Navigation -->
-    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo & Titolo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
-                    <div class="bg-white/15 p-2 rounded-xl backdrop-blur-md">
-                        <i class="fa-solid fa-receipt text-xl text-amber-300"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-lg leading-tight flex items-center gap-1.5">
-                            FamilyBudget <span class="text-amber-300 text-xs font-bold px-2 py-0.5 bg-amber-400/20 rounded-full border border-amber-300/30">AI Pro</span>
-                        </h1>
-                        <p class="text-[10px] text-indigo-200">Spese, Bollette, Buoni & Scorte</p>
-                    </div>
-                </div>
+  <div class="container">
+    
+    <!-- Sezione di sinistra: Caricamento e Visualizzatore -->
+    <div class="card">
+      <h2>✨ Scanner AI Documenti</h2>
+      <p class="subtitle">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
 
-                <!-- Desktop Nav -->
-                <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn bg-indigo-800 text-white px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line"></i> Dashboard
-                    </button>
-                    <button onclick="switchTab('scanner')" id="nav-scanner" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> AI Scanner
-                    </button>
-                    <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-box-archive"></i> Archivio & Bollette
-                    </button>
-                    <button onclick="switchTab('coupons')" id="nav-coupons" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2 relative">
-                        <i class="fa-solid fa-ticket text-amber-300"></i> Buoni & Alert
-                        <span id="coupon-alert-badge" class="hidden absolute -top-1 -right-1 bg-amber-400 text-indigo-950 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow">!</span>
-                    </button>
-                    <button onclick="switchTab('pantry')" id="nav-pantry" class="nav-btn text-indigo-100 hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-all flex items-center gap-2 relative">
-                        <i class="fa-solid fa-basket-shopping text-emerald-300"></i> Dispensa & Scorte
-                        <span id="pantry-alert-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow">!</span>
-                    </button>
-                </nav>
+      <div class="tab-group">
+        <button class="tab-btn" onclick="setDocType('scontrino')">🧾 Scontrino Spesa</button>
+        <button class="tab-btn active" onclick="setDocType('bolletta')">📑 Bolletta Utenza</button>
+      </div>
 
-                <!-- Componente Famiglia Corrente -->
-                <div class="hidden lg:flex items-center gap-2 bg-indigo-800/60 px-3 py-1.5 rounded-xl border border-indigo-500/30 text-xs">
-                    <i class="fa-solid fa-user-gear text-indigo-300"></i>
-                    <select id="header-member-select" onchange="syncMember(this.value)" class="bg-transparent font-medium focus:outline-none cursor-pointer text-white">
-                        <option value="Mamma" class="text-slate-800">👩 Mamma</option>
-                        <option value="Papà" class="text-slate-800">👨 Papà</option>
-                        <option value="Figlio/a" class="text-slate-800">🧒 Figlio/a</option>
-                        <option value="Famiglia" class="text-slate-800" selected>🏡 Comune/Famiglia</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Content Area -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        <!-- BANNER PROMEMORIA / ALERT ATTIVI -->
-        <div id="global-alert-banner" class="hidden mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 rounded-2xl shadow-sm text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shrink-0 text-lg shadow-sm">
-                    <i class="fa-solid fa-bell animate-bounce"></i>
-                </div>
-                <div>
-                    <h4 class="font-bold text-sm text-amber-950" id="banner-title">Avvisi e Scadenze Attive</h4>
-                    <p class="text-xs text-amber-800" id="banner-desc">Hai buoni sconto in scadenza e prodotti in dispensa da consumare a breve!</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 self-end sm:self-center">
-                <button onclick="switchTab('coupons')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all">
-                    Vedi Buoni
-                </button>
-                <button onclick="switchTab('pantry')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all">
-                    Vedi Scorte
-                </button>
-            </div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="application/pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
+        
+        <!-- Contenitore dell'anteprima PDF / Immagine vera e propria -->
+        <div id="pdfPreviewContainer" style="display:none;">
+          <canvas id="pdfCanvas"></canvas>
+          <button type="button" onclick="resetFile()" class="btn-delete" title="Rimuovi file">🗑️️</button>
         </div>
 
-        <!-- TAB 1: DASHBOARD & ANALISI CONSUMI -->
-        <section id="tab-dashboard" class="tab-content space-y-6 animate-fade-in">
-            
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-slate-500">Spesa Mese Corrente</p>
-                        <p id="kpi-month-total" class="text-xl font-bold text-slate-800">€ 0.00</p>
-                    </div>
-                </div>
+        <!-- Placeholder di caricamento -->
+        <div id="uploadPlaceholder" onclick="document.getElementById('fileInput').click()" style="cursor:pointer;">
+          <p>📄 Clicca o trascina qui la bolletta (PDF/Immagine)</p>
+        </div>
+      </div>
 
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-bolt"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-slate-500">Bollette Mese / Scadenza</p>
-                        <p id="kpi-bills-total" class="text-xl font-bold text-slate-800">€ 0.00</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-tags"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-slate-500">Buoni Sconto Attivi</p>
-                        <p id="kpi-coupons-active" class="text-xl font-bold text-slate-800">0 disponibili</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-apple-whole"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-slate-500">Scadenze Dispensa (7gg)</p>
-                        <p id="kpi-pantry-expiring" class="text-xl font-bold text-slate-800">0 prodotti</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sezione Grafici e Consumi -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Grafico Categorie Spese -->
-                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-indigo-600"></i> Ripartizione Categorie Spese
-                    </h3>
-                    <div class="h-64 relative flex-grow flex items-center justify-center">
-                        <canvas id="chart-categories"></canvas>
-                    </div>
-                </div>
-
-                <!-- Grafico Componenti Famiglia -->
-                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-indigo-600"></i> Spese per Componente Famiglia
-                    </h3>
-                    <div class="h-64 relative flex-grow flex items-center justify-center">
-                        <canvas id="chart-members"></canvas>
-                    </div>
-                </div>
-
-                <!-- Analisi Prodotti Più Consumati / Ricorrenti -->
-                <div class="lg:col-span-12 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b pb-3">
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-fire text-amber-500"></i> Stima Consumi & Prodotti Più Acquistati
-                            </h3>
-                            <p class="text-xs text-slate-500">Classifica degli articoli acquistati più di frequente per ottimizzare le scorte di casa.</p>
-                        </div>
-                        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-semibold border border-indigo-100">
-                            Basato sugli scontrini registrati
-                        </span>
-                    </div>
-
-                    <div id="top-products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <!-- Popolato dinamicamente -->
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- TAB 2: AI SCANNER (SCONTRINI E BOLLETTE) -->
-        <section id="tab-scanner" class="tab-content hidden space-y-6 animate-fade-in">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Colonna Sinistra: Upload & Selezione Tipo Documento -->
-                <div class="lg:col-span-5 space-y-4">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-                            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Scanner AI Documenti
-                        </h2>
-                        <p class="text-xs text-slate-500 mb-4">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
-
-                        <!-- Selezione Tipo Documento -->
-                        <div class="grid grid-cols-2 gap-2 mb-4">
-                            <button id="doc-type-receipt" onclick="setDocType('receipt')" class="p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700">
-                                <i class="fa-solid fa-receipt"></i> Scontrino Spesa
-                            </button>
-                            <button id="doc-type-bill" onclick="setDocType('bill')" class="p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50">
-                                <i class="fa-solid fa-file-invoice-dollar"></i> Bolletta Utenza
-                            </button>
-                        </div>
-
-                        <!-- Dropzone File / Foto -->
-                        <div id="scanner-dropzone" onclick="document.getElementById('scanner-file-input').click()" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 transition-all rounded-xl p-6 text-center cursor-pointer min-h-[220px] flex flex-col items-center justify-center">
-                            <input type="file" id="scanner-file-input" accept="image/*,application/pdf" capture="environment" class="hidden" onchange="handleScannerFileSelect(event)">
-                            
-                            <div id="scanner-upload-placeholder" class="space-y-3">
-                                <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
-                                    <i id="doc-icon-placeholder" class="fa-solid fa-cloud-arrow-up"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700">Clicca o trascina qui la foto/PDF</p>
-                                    <p class="text-xs text-slate-500 mt-1">Scontrino o Bolletta (Luce, Gas, Acqua, etc.)</p>
-                                </div>
-                            </div>
-
-                            <!-- Preview File -->
-                            <div id="scanner-preview-container" class="hidden relative w-full">
-                                <img id="scanner-img-preview" src="" alt="Preview" class="max-h-60 mx-auto rounded-lg shadow object-contain">
-                                <div id="scanner-pdf-preview" class="hidden p-4 bg-slate-100 rounded-lg text-slate-700 text-xs font-semibold flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i> Documento PDF Caricato
-                                </div>
-                                <button onclick="resetScanner(event)" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow transition-all text-xs" title="Rimuovi file">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Bottone Analisi AI -->
-                        <button id="btn-run-ai" onclick="analyzeDocumentWithGemini()" disabled class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Analizza con Gemini AI
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Colonna Destra: Modifica Dati Estratti -->
-                <div class="lg:col-span-7">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-full flex flex-col">
-                        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-                            <div>
-                                <h3 id="form-title" class="text-base font-bold text-slate-800">Verifica Dati Rilevati</h3>
-                                <p class="text-xs text-slate-500">Controlla o completa le informazioni estratte prima del salvataggio.</p>
-                            </div>
-                            <span id="ai-status-tag" class="hidden px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                                <i class="fa-solid fa-check-circle"></i> Elaborato
-                            </span>
-                        </div>
-
-                        <!-- Spinner AI -->
-                        <div id="ai-loading-spinner" class="hidden my-auto py-12 text-center">
-                            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
-                            <p class="text-sm font-semibold text-slate-700">Analisi del documento con Gemini AI...</p>
-                            <p class="text-xs text-slate-500 mt-1">Sto estraendo fornitori, importi, scadenze e prodotti</p>
-                        </div>
-
-                        <!-- FORM DINAMICO: SCONTRINO -->
-                        <div id="form-receipt-container" class="space-y-4 flex-grow">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Spesa</label>
-                                    <input type="date" id="rcpt-date" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Esercente / Negozio</label>
-                                    <input type="text" id="rcpt-store" placeholder="Es. Eurospar, Coop..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Acquistato da</label>
-                                    <select id="rcpt-member" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white">
-                                        <option value="Mamma">👩 Mamma</option>
-                                        <option value="Papà">👨 Papà</option>
-                                        <option value="Figlio/a">🧒 Figlio/a</option>
-                                        <option value="Famiglia" selected>🏡 Comune / Famiglia</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Tabella Articoli Scontrino -->
-                            <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="text-xs font-semibold text-slate-600 uppercase">Articoli nello Scontrino</label>
-                                    <button onclick="addRcptItemRow()" class="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1">
-                                        <i class="fa-solid fa-plus-circle"></i> Aggiungi Articolo
-                                    </button>
-                                </div>
-                                <div class="overflow-x-auto max-h-[220px] overflow-y-auto border border-slate-200 rounded-xl">
-                                    <table class="w-full text-left border-collapse text-xs">
-                                        <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 font-semibold text-slate-600">
-                                            <tr>
-                                                <th class="p-2">Prodotto</th>
-                                                <th class="p-2 w-32">Categoria</th>
-                                                <th class="p-2 w-20 text-right">Prezzo (€)</th>
-                                                <th class="p-2 w-28 text-center">Aggiungi a Dispensa?</th>
-                                                <th class="p-2 w-8"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="rcpt-items-tbody" class="divide-y divide-slate-100">
-                                            <!-- Righe generate -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500">Categoria Prevalente</label>
-                                    <select id="rcpt-main-cat" class="text-xs border border-slate-300 rounded-lg p-1.5 bg-white">
-                                        <option value="Alimentari">🛒 Alimentari & Spesa</option>
-                                        <option value="Casa">🏠 Casa & Manutenzione</option>
-                                        <option value="Abbigliamento">👕 Abbigliamento</option>
-                                        <option value="Salute">💊 Salute & Farmacia</option>
-                                        <option value="Svago">🎉 Svago & Tempo Libero</option>
-                                        <option value="Trasporti">🚗 Trasporti & Carburante</option>
-                                        <option value="Altro">📦 Altro</option>
-                                    </select>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-xs font-semibold text-slate-500 block">Totale Scontrino</span>
-                                    <span id="rcpt-total-val" class="text-xl font-bold text-indigo-600">€ 0.00</span>
-                                </div>
-                            </div>
-
-                            <button onclick="saveReceiptEntry()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
-                                <i class="fa-solid fa-floppy-disk"></i> Salva Spesa & Aggiorna Dispensa
-                            </button>
-                        </div>
-
-                        <!-- FORM DINAMICO: BOLLETTA -->
-                        <div id="form-bill-container" class="hidden space-y-4 flex-grow">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Ente / Fornitore</label>
-                                    <input type="text" id="bill-provider" placeholder="Es. Enel, A2A, Servizio Elettrico..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo Utenza</label>
-                                    <select id="bill-type" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white">
-                                        <option value="Luce">⚡ Luce / Elettricità</option>
-                                        <option value="Gas">🔥 Gas Riscaldamento</option>
-                                        <option value="Acqua">💧 Acqua</option>
-                                        <option value="Internet/Telefono">🌐 Internet & Telefono</option>
-                                        <option value="Rifiuti/TARI">🗑️ Rifiuti (TARI)</option>
-                                        <option value="Altro">📑 Altro / Condominio</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Importo Bolletta (€)</label>
-                                    <input type="number" step="0.01" id="bill-amount" placeholder="0.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Scadenza Pagamento</label>
-                                    <input type="date" id="bill-due-date" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Periodo di Riferimento / Note</label>
-                                    <input type="text" id="bill-period" placeholder="Es. Bimestre Gen-Feb 2026 (Consumo 450 kWh)" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Stato Pagamento</label>
-                                    <select id="bill-status" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white font-semibold">
-                                        <option value="DA_PAGARE" class="text-amber-600">⏳ Da Pagare</option>
-                                        <option value="PAGATA" class="text-emerald-600">✅ Pagata</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <button onclick="saveBillEntry()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs mt-auto">
-                                <i class="fa-solid fa-file-invoice-dollar"></i> Salva Bolletta nello Scadenziario
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- TAB 3: ARCHIVIO SPESE & SCADENZIARIO BOLLETTE -->
-        <section id="tab-archive" class="tab-content hidden space-y-6 animate-fade-in">
-            
-            <!-- Sub-tabs Archivio -->
-            <div class="flex border-b border-slate-200 gap-4">
-                <button onclick="switchArchiveSubTab('receipts')" id="subtab-btn-receipts" class="pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2">
-                    <i class="fa-solid fa-receipt"></i> Scontrini & Spese
-                </button>
-                <button onclick="switchArchiveSubTab('bills')" id="subtab-btn-bills" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Scadenziario Bollette
-                </button>
-            </div>
-
-            <!-- SUBTAB SCONTRINI -->
-            <div id="subtab-receipts" class="space-y-4">
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <input type="text" id="arch-search" oninput="renderReceiptsArchive()" placeholder="Cerca negozio o prodotto..." class="text-xs border border-slate-300 rounded-lg p-2">
-                    <select id="arch-category" onchange="renderReceiptsArchive()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
-                        <option value="ALL">Tutte le Categorie</option>
-                        <option value="Alimentari">🛒 Alimentari</option>
-                        <option value="Casa">🏠 Casa</option>
-                        <option value="Salute">💊 Salute</option>
-                        <option value="Svago">🎉 Svago</option>
-                        <option value="Trasporti">🚗 Trasporti</option>
-                        <option value="Altro">📦 Altro</option>
-                    </select>
-                    <select id="arch-member" onchange="renderReceiptsArchive()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
-                        <option value="ALL">Tutti i Componenti</option>
-                        <option value="Mamma">👩 Mamma</option>
-                        <option value="Papà">👨 Papà</option>
-                        <option value="Figlio/a">🧒 Figlio/a</option>
-                        <option value="Famiglia">🏡 Famiglia</option>
-                    </select>
-                    <button onclick="exportCSV()" class="text-xs bg-slate-100 hover:bg-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-300 flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Esporta CSV
-                    </button>
-                </div>
-
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
-                            <tr>
-                                <th class="p-3">Data</th>
-                                <th class="p-3">Esercente</th>
-                                <th class="p-3">Componente</th>
-                                <th class="p-3">Categoria</th>
-                                <th class="p-3">Articoli</th>
-                                <th class="p-3 text-right">Totale</th>
-                                <th class="p-3 text-center">Azione</th>
-                            </tr>
-                        </thead>
-                        <tbody id="receipts-archive-tbody" class="divide-y divide-slate-100">
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- SUBTAB BOLLETTE -->
-            <div id="subtab-bills" class="hidden space-y-4">
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
-                            <tr>
-                                <th class="p-3">Fornitore</th>
-                                <th class="p-3">Tipo Utenza</th>
-                                <th class="p-3">Periodo / Note</th>
-                                <th class="p-3">Scadenza</th>
-                                <th class="p-3 text-right">Importo</th>
-                                <th class="p-3 text-center">Stato</th>
-                                <th class="p-3 text-center">Azione</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bills-archive-tbody" class="divide-y divide-slate-100">
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- TAB 4: BUONI SCONTO & ALERT -->
-        <section id="tab-coupons" class="tab-content hidden space-y-6 animate-fade-in">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-ticket text-amber-500"></i> Buoni Sconto & Voucher Attivi
-                    </h2>
-                    <p class="text-xs text-slate-500">Gestisci i tuoi coupon per non farli scadere inutilizzati.</p>
-                </div>
-                <button onclick="showAddCouponModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-plus"></i> Aggiungi Buono
-                </button>
-            </div>
-
-            <div id="coupons-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Card Buoni generate dinamicamente -->
-            </div>
-        </section>
-
-        <!-- TAB 5: DISPENSA & SCORTE ALIMENTARI -->
-        <section id="tab-pantry" class="tab-content hidden space-y-6 animate-fade-in">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-basket-shopping text-emerald-600"></i> Gestione Scorte & Dispensa
-                    </h2>
-                    <p class="text-xs text-slate-500">Monitora i prodotti in casa ed evita gli sprechi con gli avvisi sulla data di scadenza.</p>
-                </div>
-                <button onclick="showAddPantryModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-plus"></i> Aggiungi Prodotto
-                </button>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
-                        <tr>
-                            <th class="p-3">Prodotto</th>
-                            <th class="p-3">Categoria</th>
-                            <th class="p-3 text-center">Quantità</th>
-                            <th class="p-3">Scadenza</th>
-                            <th class="p-3 text-center">Stato</th>
-                            <th class="p-3 text-center">Azione</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pantry-tbody" class="divide-y divide-slate-100">
-                        <!-- Popolato dinamicamente -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Bottom Navigation per Mobile -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-50 text-[10px] font-semibold">
-        <button onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="flex flex-col items-center gap-1 text-indigo-600">
-            <i class="fa-solid fa-chart-line text-base"></i> Home
-        </button>
-        <button onclick="switchTab('scanner')" id="mob-nav-scanner" class="flex flex-col items-center gap-1 text-slate-500">
-            <i class="fa-solid fa-wand-magic-sparkles text-base"></i> AI Scanner
-        </button>
-        <button onclick="switchTab('archive')" id="mob-nav-archive" class="flex flex-col items-center gap-1 text-slate-500">
-            <i class="fa-solid fa-box-archive text-base"></i> Archivio
-        </button>
-        <button onclick="switchTab('coupons')" id="mob-nav-coupons" class="flex flex-col items-center gap-1 text-slate-500 relative">
-            <i class="fa-solid fa-ticket text-base"></i> Buoni
-        </button>
-        <button onclick="switchTab('pantry')" id="mob-nav-pantry" class="flex flex-col items-center gap-1 text-slate-500 relative">
-            <i class="fa-solid fa-basket-shopping text-base"></i> Dispensa
-        </button>
+      <button type="button" id="btnAnalyze" class="btn-ai" onclick="analyzeWithGemini()" disabled>
+        ✨ Analizza con Gemini AI
+      </button>
     </div>
 
-    <!-- LOGICA JAVASCRIPT APP -->
-    <script>
-        // --- STATO APPLICAZIONE ---
-        let appData = {
-            receipts: [],
-            bills: [],
-            coupons: [],
-            pantry: []
-        };
-
-        let currentDocType = 'receipt';
-        let currentSelectedFile = null;
-        let chartCategoriesInstance = null;
-        let chartMembersInstance = null;
-
-        // --- INIZIALIZZAZIONE ---
-        window.addEventListener('DOMContentLoaded', () => {
-            loadState();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('rcpt-date').value = today;
-            document.getElementById('bill-due-date').value = today;
-            
-            if (document.getElementById('rcpt-items-tbody').children.length === 0) {
-                addRcptItemRow('Pasta Barilla 500g', 'Alimentari', 1.20, true);
-            }
-
-            renderAll();
-        });
-
-        // --- PERSISTENZA LOCALSTORAGE ---
-        function loadState() {
-            const saved = localStorage.getItem('family_budget_app_data');
-            if (saved) {
-                try {
-                    appData = JSON.parse(saved);
-                } catch(e) {
-                    console.error("Errore caricamento stato", e);
-                    initDemoData();
-                }
-            } else {
-                initDemoData();
-            }
-        }
-
-        function saveState() {
-            localStorage.setItem('family_budget_app_data', JSON.stringify(appData));
-            renderAll();
-        }
-
-        function initDemoData() {
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            
-            const in3Days = new Date(today);
-            in3Days.setDate(today.getDate() + 3);
-            const in3DaysStr = in3Days.toISOString().split('T')[0];
-
-            const in10Days = new Date(today);
-            in10Days.setDate(today.getDate() + 10);
-            const in10DaysStr = in10Days.toISOString().split('T')[0];
-
-            appData = {
-                receipts: [
-                    {
-                        id: 'r1',
-                        date: dateStr,
-                        store: 'Eurospar',
-                        member: 'Mamma',
-                        category: 'Alimentari',
-                        total: 45.80,
-                        items: [
-                            { name: 'Latte Intero 1L', category: 'Alimentari', price: 1.40 },
-                            { name: 'Caffè Lavazza', category: 'Alimentari', price: 4.50 },
-                            { name: 'Detersivo Piatti', category: 'Casa', price: 2.20 }
-                        ]
-                    },
-                    {
-                        id: 'r2',
-                        date: dateStr,
-                        store: 'Decathlon',
-                        member: 'Papà',
-                        category: 'Svago',
-                        total: 35.00,
-                        items: [
-                            { name: 'Scarpe Running', category: 'Svago', price: 35.00 }
-                        ]
-                    }
-                ],
-                bills: [
-                    {
-                        id: 'b1',
-                        provider: 'Enel Energia',
-                        type: 'Luce',
-                        amount: 85.50,
-                        dueDate: in10DaysStr,
-                        period: 'Bimestre Ago-Set',
-                        status: 'DA_PAGARE'
-                    }
-                ],
-                coupons: [
-                    {
-                        id: 'c1',
-                        store: 'Coop',
-                        code: 'SPESA10',
-                        discount: '10€ su 50€',
-                        expiryDate: in3DaysStr,
-                        used: false
-                    }
-                ],
-                pantry: [
-                    {
-                        id: 'p1',
-                        name: 'Yogurt Greco',
-                        category: 'Freschi',
-                        quantity: 2,
-                        expiryDate: in3DaysStr
-                    },
-                    {
-                        id: 'p2',
-                        name: 'Passata di Pomodoro',
-                        category: 'Conserve',
-                        quantity: 4,
-                        expiryDate: in10DaysStr
-                    }
-                ]
-            };
-            saveState();
-        }
-
-        // --- RENDER COMPLETO DELL'INTERFACCIA ---
-        function renderAll() {
-            renderDashboard();
-            renderReceiptsArchive();
-            renderBillsArchive();
-            renderCoupons();
-            renderPantry();
-            updateGlobalAlerts();
-        }
-
-        // --- SWITCH TAB PRINCIPALI ---
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('bg-indigo-800', 'text-white');
-                btn.classList.add('text-indigo-100');
-            });
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-indigo-800', 'text-white');
-                activeBtn.classList.remove('text-indigo-100');
-            }
-
-            ['dashboard', 'scanner', 'archive', 'coupons', 'pantry'].forEach(t => {
-                const mobBtn = document.getElementById(`mob-nav-${t}`);
-                if (mobBtn) {
-                    if (t === tabId) {
-                        mobBtn.classList.add('text-indigo-600');
-                        mobBtn.classList.remove('text-slate-500');
-                    } else {
-                        mobBtn.classList.remove('text-indigo-600');
-                        mobBtn.classList.add('text-slate-500');
-                    }
-                }
-            });
-
-            if (tabId === 'dashboard') {
-                renderDashboardCharts();
-            }
-        }
-
-        // --- SWITCH SUBTAB ARCHIVIO ---
-        function switchArchiveSubTab(subTab) {
-            document.getElementById('subtab-receipts').classList.add('hidden');
-            document.getElementById('subtab-bills').classList.add('hidden');
-            document.getElementById(`subtab-${subTab}`).classList.remove('hidden');
-
-            const btnReceipts = document.getElementById('subtab-btn-receipts');
-            const btnBills = document.getElementById('subtab-btn-bills');
-
-            if (subTab === 'receipts') {
-                btnReceipts.className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
-                btnBills.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            } else {
-                btnBills.className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
-                btnReceipts.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            }
-        }
-
-        function syncMember(val) {
-            const rcptMember = document.getElementById('rcpt-member');
-            if (rcptMember) rcptMember.value = val;
-        }
-
-        // --- DASHBOARD & KPI ---
-        function renderDashboard() {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-
-            const monthTotal = appData.receipts
-                .filter(r => {
-                    const d = new Date(r.date);
-                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                })
-                .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
-
-            document.getElementById('kpi-month-total').innerText = `€ ${monthTotal.toFixed(2)}`;
-
-            const billsTotal = appData.bills
-                .filter(b => b.status === 'DA_PAGARE')
-                .reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
-            document.getElementById('kpi-bills-total').innerText = `€ ${billsTotal.toFixed(2)}`;
-
-            const activeCoupons = appData.coupons.filter(c => !c.used).length;
-            document.getElementById('kpi-coupons-active').innerText = `${activeCoupons} disponibili`;
-
-            const in7Days = new Date();
-            in7Days.setDate(now.getDate() + 7);
-
-            const expiringPantry = appData.pantry.filter(p => {
-                const exp = new Date(p.expiryDate);
-                return exp >= now && exp <= in7Days;
-            }).length;
-            document.getElementById('kpi-pantry-expiring').innerText = `${expiringPantry} prodotti`;
-
-            renderTopProducts();
-            renderDashboardCharts();
-        }
-
-        function renderTopProducts() {
-            const productCounts = {};
-            appData.receipts.forEach(r => {
-                (r.items || []).forEach(item => {
-                    const name = item.name.trim();
-                    if (name) {
-                        productCounts[name] = (productCounts[name] || 0) + 1;
-                    }
-                });
-            });
-
-            const sorted = Object.entries(productCounts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 6);
-
-            const container = document.getElementById('top-products-list');
-            if (sorted.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-4 text-center">Nessun dato acquisti disponibile.</p>`;
-                return;
-            }
-
-            container.innerHTML = sorted.map(([name, count]) => `
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center">
-                            ${count}x
-                        </div>
-                        <span class="text-xs font-semibold text-slate-700">${name}</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400 font-medium">Frequente</span>
-                </div>
-            `).join('');
-        }
-
-        // --- GRAFICI CHART.JS ---
-        function renderDashboardCharts() {
-            const categories = ['Alimentari', 'Casa', 'Abbigliamento', 'Salute', 'Svago', 'Trasporti', 'Altro'];
-            const categoryTotals = categories.map(cat => {
-                return appData.receipts
-                    .filter(r => r.category === cat)
-                    .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
-            });
-
-            const ctxCat = document.getElementById('chart-categories');
-            if (ctxCat) {
-                if (chartCategoriesInstance) chartCategoriesInstance.destroy();
-                chartCategoriesInstance = new Chart(ctxCat, {
-                    type: 'doughnut',
-                    data: {
-                        labels: categories,
-                        datasets: [{
-                            data: categoryTotals,
-                            backgroundColor: ['#4f46e5', '#0ea5e9', '#ec4899', '#10b981', '#f59e0b', '#6366f1', '#94a3b8']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
-                    }
-                });
-            }
-
-            const members = ['Mamma', 'Papà', 'Figlio/a', 'Famiglia'];
-            const memberTotals = members.map(m => {
-                return appData.receipts
-                    .filter(r => r.member === m)
-                    .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
-            });
-
-            const ctxMem = document.getElementById('chart-members');
-            if (ctxMem) {
-                if (chartMembersInstance) chartMembersInstance.destroy();
-                chartMembersInstance = new Chart(ctxMem, {
-                    type: 'bar',
-                    data: {
-                        labels: members,
-                        datasets: [{
-                            label: 'Totale Speso (€)',
-                            data: memberTotals,
-                            backgroundColor: '#6366f1',
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-            }
-        }
-
-        // --- SCANNER AI & MOCK GEMINI ---
-        function setDocType(type) {
-            currentDocType = type;
-            const btnRcpt = document.getElementById('doc-type-receipt');
-            const btnBill = document.getElementById('doc-type-bill');
-            const formRcpt = document.getElementById('form-receipt-container');
-            const formBill = document.getElementById('form-bill-container');
-
-            if (type === 'receipt') {
-                btnRcpt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700";
-                btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
-                formRcpt.classList.remove('hidden');
-                formBill.classList.add('hidden');
-                document.getElementById('form-title').innerText = "Verifica Dati Scontrino";
-            } else {
-                btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-amber-600 bg-amber-50 text-amber-700";
-                btnRcpt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
-                formBill.classList.remove('hidden');
-                formRcpt.classList.add('hidden');
-                document.getElementById('form-title').innerText = "Verifica Dati Bolletta";
-            }
-        }
-
-        function handleScannerFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            currentSelectedFile = file;
-            document.getElementById('btn-run-ai').disabled = false;
-            document.getElementById('scanner-upload-placeholder').classList.add('hidden');
-            document.getElementById('scanner-preview-container').classList.remove('hidden');
-
-            if (file.type.includes('image')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('scanner-img-preview').src = e.target.result;
-                    document.getElementById('scanner-img-preview').classList.remove('hidden');
-                    document.getElementById('scanner-pdf-preview').classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            } else if (file.type.includes('pdf')) {
-                document.getElementById('scanner-img-preview').classList.add('hidden');
-                document.getElementById('scanner-pdf-preview').classList.remove('hidden');
-            }
-        }
-
-        function resetScanner(e) {
-            if (e) e.stopPropagation();
-            currentSelectedFile = null;
-            document.getElementById('scanner-file-input').value = '';
-            document.getElementById('btn-run-ai').disabled = true;
-            document.getElementById('scanner-upload-placeholder').classList.remove('hidden');
-            document.getElementById('scanner-preview-container').classList.add('hidden');
-            document.getElementById('ai-status-tag').classList.add('hidden');
-        }
-
-        function analyzeDocumentWithGemini() {
-            if (!currentSelectedFile) return;
-
-            const spinner = document.getElementById('ai-loading-spinner');
-            const formRcpt = document.getElementById('form-receipt-container');
-            const formBill = document.getElementById('form-bill-container');
-
-            spinner.classList.remove('hidden');
-            formRcpt.classList.add('hidden');
-            formBill.classList.add('hidden');
-
-            setTimeout(() => {
-                spinner.classList.add('hidden');
-                document.getElementById('ai-status-tag').classList.remove('hidden');
-
-                if (currentDocType === 'receipt') {
-                    formRcpt.classList.remove('hidden');
-                    document.getElementById('rcpt-store').value = "Conad Superstore";
-                    document.getElementById('rcpt-main-cat').value = "Alimentari";
-                    
-                    const tbody = document.getElementById('rcpt-items-tbody');
-                    tbody.innerHTML = '';
-                    addRcptItemRow('Pane Integrale 500g', 'Alimentari', 2.10, true);
-                    addRcptItemRow('Mela Golden 1kg', 'Alimentari', 1.85, true);
-                    addRcptItemRow('Detersivo Lavatrice', 'Casa', 5.90, false);
-                    calculateRcptTotal();
-                } else {
-                    formBill.classList.remove('hidden');
-                    document.getElementById('bill-provider').value = "A2A Energia";
-                    document.getElementById('bill-type').value = "Luce";
-                    document.getElementById('bill-amount').value = "112.40";
-                    document.getElementById('bill-period').value = "Bimestre Lug-Ago (420 kWh)";
-                    document.getElementById('bill-status').value = "DA_PAGARE";
-                }
-            }, 1200);
-        }
-
-        function addRcptItemRow(name = '', category = 'Alimentari', price = 0.00, addToPantry = true) {
-            const tbody = document.getElementById('rcpt-items-tbody');
-            const row = document.createElement('tr');
-            row.className = "border-b border-slate-100 hover:bg-slate-50/50";
-            row.innerHTML = `
-                <td class="p-2"><input type="text" value="${name}" placeholder="Nome Articolo" class="rcpt-item-name w-full text-xs border border-slate-200 rounded p-1"></td>
-                <td class="p-2">
-                    <select class="rcpt-item-cat w-full text-xs border border-slate-200 rounded p-1 bg-white">
-                        <option value="Alimentari" ${category === 'Alimentari' ? 'selected' : ''}>🛒 Alimentari</option>
-                        <option value="Casa" ${category === 'Casa' ? 'selected' : ''}>🏠 Casa</option>
-                        <option value="Abbigliamento" ${category === 'Abbigliamento' ? 'selected' : ''}>👕 Abbigliamento</option>
-                        <option value="Salute" ${category === 'Salute' ? 'selected' : ''}>💊 Salute</option>
-                        <option value="Svago" ${category === 'Svago' ? 'selected' : ''}>🎉 Svago</option>
-                        <option value="Trasporti" ${category === 'Trasporti' ? 'selected' : ''}>🚗 Trasporti</option>
-                        <option value="Altro" ${category === 'Altro' ? 'selected' : ''}>📦 Altro</option>
-                    </select>
-                </td>
-                <td class="p-2"><input type="number" step="0.01" value="${price}" onchange="calculateRcptTotal()" class="rcpt-item-price w-full text-xs border border-slate-200 rounded p-1 text-right font-semibold"></td>
-                <td class="p-2 text-center">
-                    <input type="checkbox" class="rcpt-item-pantry rounded text-indigo-600 focus:ring-indigo-500" ${addToPantry ? 'checked' : ''}>
-                </td>
-                <td class="p-2 text-center">
-                    <button onclick="removeRcptItemRow(this)" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            `;
-            tbody.appendChild(row);
-            calculateRcptTotal();
-        }
-
-        function removeRcptItemRow(btn) {
-            btn.closest('tr').remove();
-            calculateRcptTotal();
-        }
-
-        function calculateRcptTotal() {
-            let total = 0;
-            document.querySelectorAll('.rcpt-item-price').forEach(input => {
-                total += parseFloat(input.value) || 0;
-            });
-            document.getElementById('rcpt-total-val').innerText = `€ ${total.toFixed(2)}`;
-        }
-
-        function saveReceiptEntry() {
-            const store = document.getElementById('rcpt-store').value || "Spesa Generica";
-            const date = document.getElementById('rcpt-date').value;
-            const member = document.getElementById('rcpt-member').value;
-            const category = document.getElementById('rcpt-main-cat').value;
-
-            const items = [];
-            let total = 0;
-
-            const rows = document.querySelectorAll('#rcpt-items-tbody tr');
-            rows.forEach(row => {
-                const name = row.querySelector('.rcpt-item-name').value;
-                const cat = row.querySelector('.rcpt-item-cat').value;
-                const price = parseFloat(row.querySelector('.rcpt-item-price').value) || 0;
-                const inPantry = row.querySelector('.rcpt-item-pantry').checked;
-
-                if (name) {
-                    items.push({ name, category: cat, price });
-                    total += price;
-
-                    if (inPantry) {
-                        const in7Days = new Date();
-                        in7Days.setDate(in7Days.getDate() + 7);
-                        appData.pantry.push({
-                            id: 'p_' + Date.now() + Math.random(),
-                            name: name,
-                            category: cat,
-                            quantity: 1,
-                            expiryDate: in7Days.toISOString().split('T')[0]
-                        });
-                    }
-                }
-            });
-
-            appData.receipts.unshift({
-                id: 'r_' + Date.now(),
-                date,
-                store,
-                member,
-                category,
-                total,
-                items
-            });
-
-            saveState();
-            alert("Spesa salvata con successo!");
-            resetScanner();
-            switchTab('dashboard');
-        }
-
-        function saveBillEntry() {
-            const provider = document.getElementById('bill-provider').value || "Fornitore Sconosciuto";
-            const type = document.getElementById('bill-type').value;
-            const amount = parseFloat(document.getElementById('bill-amount').value) || 0;
-            const dueDate = document.getElementById('bill-due-date').value;
-            const period = document.getElementById('bill-period').value;
-            const status = document.getElementById('bill-status').value;
-
-            appData.bills.unshift({
-                id: 'b_' + Date.now(),
-                provider,
-                type,
-                amount,
-                dueDate,
-                period,
-                status
-            });
-
-            saveState();
-            alert("Bolletta aggiunta allo scadenziario!");
-            resetScanner();
-            switchTab('archive');
-            switchArchiveSubTab('bills');
-        }
-
-        // --- RENDER TABELLE ARCHIVIO ---
-        function renderReceiptsArchive() {
-            const search = document.getElementById('arch-search').value.toLowerCase();
-            const category = document.getElementById('arch-category').value;
-            const member = document.getElementById('arch-member').value;
-
-            const filtered = appData.receipts.filter(r => {
-                const matchesSearch = r.store.toLowerCase().includes(search) || (r.items && r.items.some(i => i.name.toLowerCase().includes(search)));
-                const matchesCat = category === 'ALL' || r.category === category;
-                const matchesMember = member === 'ALL' || r.member === member;
-                return matchesSearch && matchesCat && matchesMember;
-            });
-
-            const tbody = document.getElementById('receipts-archive-tbody');
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Nessuna spesa trovata.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filtered.map(r => `
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="p-3 font-medium text-slate-700">${r.date}</td>
-                    <td class="p-3 font-semibold text-slate-800">${r.store}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 font-semibold">${r.member}</span></td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 font-semibold">${r.category}</span></td>
-                    <td class="p-3 text-slate-500">${(r.items || []).map(i => i.name).join(', ')}</td>
-                    <td class="p-3 text-right font-bold text-indigo-600">€ ${parseFloat(r.total).toFixed(2)}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteReceipt('${r.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderBillsArchive() {
-            const tbody = document.getElementById('bills-archive-tbody');
-            if (appData.bills.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Nessuna bolletta registrata.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = appData.bills.map(b => `
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="p-3 font-semibold text-slate-800">${b.provider}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-700 font-semibold">${b.type}</span></td>
-                    <td class="p-3 text-slate-500">${b.period || '-'}</td>
-                    <td class="p-3 font-medium text-slate-700">${b.dueDate}</td>
-                    <td class="p-3 text-right font-bold text-slate-800">€ ${parseFloat(b.amount).toFixed(2)}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="toggleBillStatus('${b.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${b.status === 'PAGATA' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                            ${b.status === 'PAGATA' ? '✅ Pagata' : '⏳ Da Pagare'}
-                        </button>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteBill('${b.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function toggleBillStatus(id) {
-            const bill = appData.bills.find(b => b.id === id);
-            if (bill) {
-                bill.status = bill.status === 'PAGATA' ? 'DA_PAGARE' : 'PAGATA';
-                saveState();
-            }
-        }
-
-        function deleteReceipt(id) {
-            if (confirm("Eliminare questa spesa?")) {
-                appData.receipts = appData.receipts.filter(r => r.id !== id);
-                saveState();
-            }
-        }
-
-        function deleteBill(id) {
-            if (confirm("Eliminare questa bolletta?")) {
-                appData.bills = appData.bills.filter(b => b.id !== id);
-                saveState();
-            }
-        }
-
-        // --- BUONI SCONTO & DISPENSA ---
-        function renderCoupons() {
-            const grid = document.getElementById('coupons-grid');
-            if (appData.coupons.length === 0) {
-                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-6 text-center">Nessun buono sconto inserito.</p>`;
-                return;
-            }
-
-            grid.innerHTML = appData.coupons.map(c => `
-                <div class="bg-white p-5 rounded-2xl border ${c.used ? 'border-slate-200 opacity-60' : 'border-amber-200'} shadow-sm relative overflow-hidden flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">${c.store}</span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] text-slate-400">Scade: ${c.expiryDate}</span>
-                                <button onclick="deleteCoupon('${c.id}')" class="text-rose-400 hover:text-rose-600 p-1 text-xs transition-colors" title="Elimina buono">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <h4 class="font-bold text-slate-800 text-base mb-1">${c.discount}</h4>
-                        <p class="text-xs font-mono bg-slate-100 p-2 rounded-lg text-slate-600 text-center tracking-wider font-semibold border border-slate-200 my-3">${c.code}</p>
-                    </div>
-                    <button onclick="toggleCouponUsed('${c.id}')" class="w-full py-2 rounded-xl text-xs font-semibold ${c.used ? 'bg-slate-200 text-slate-600' : 'bg-amber-500 hover:bg-amber-600 text-white'} transition-all shadow-sm">
-                        ${c.used ? 'Segna come Attivo' : 'Segna come Utilizzato'}
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function toggleCouponUsed(id) {
-            const coupon = appData.coupons.find(c => c.id === id);
-            if (coupon) {
-                coupon.used = !coupon.used;
-                saveState();
-            }
-        }
-
-        function deleteCoupon(id) {
-            if (confirm("Sei sicuro di voler eliminare questo buono sconto?")) {
-                appData.coupons = appData.coupons.filter(c => c.id !== id);
-                saveState();
-            }
-        }
-
-        function showAddCouponModal() {
-            const store = prompt("Negozio / Esercente:");
-            if (!store) return;
-            const discount = prompt("Sconto / Descrizione (es: 10€ su 50€):");
-            const code = prompt("Codice Coupon / Barcode:");
-            const expiryDate = prompt("Data Scadenza (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-
-            appData.coupons.push({
-                id: 'c_' + Date.now(),
-                store,
-                discount,
-                code: code || 'NESSUN CODICE',
-                expiryDate,
-                used: false
-            });
-            saveState();
-        }
-
-        function renderPantry() {
-            const tbody = document.getElementById('pantry-tbody');
-            if (appData.pantry.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nessun prodotto in dispensa.</td></tr>`;
-                return;
-            }
-
-            const today = new Date();
-
-            tbody.innerHTML = appData.pantry.map(p => {
-                const exp = new Date(p.expiryDate);
-                const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
-                let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-semibold">OK (${diffDays} gg)</span>`;
-
-                if (diffDays <= 0) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-800 font-bold">Scaduto!</span>`;
-                } else if (diffDays <= 3) {
-                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold">In Scadenza (${diffDays} gg)</span>`;
-                }
-
-                return `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
-                        <td class="p-3 text-slate-500">${p.category}</td>
-                        <td class="p-3 text-center font-bold text-slate-700">${p.quantity}</td>
-                        <td class="p-3 font-medium text-slate-700">${p.expiryDate}</td>
-                        <td class="p-3 text-center">${statusBadge}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="deletePantryItem('${p.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function showAddPantryModal() {
-            const name = prompt("Nome Prodotto:");
-            if (!name) return;
-            const category = prompt("Categoria (es. Freschi, Conserve, Bevande):", "Generico");
-            const quantity = parseInt(prompt("Quantità:", "1")) || 1;
-            const expiryDate = prompt("Data Scadenza (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-
-            appData.pantry.push({
-                id: 'p_' + Date.now(),
-                name,
-                category,
-                quantity,
-                expiryDate
-            });
-            saveState();
-        }
-
-        function deletePantryItem(id) {
-            appData.pantry = appData.pantry.filter(p => p.id !== id);
-            saveState();
-        }
-
-        // --- SISTEMA ALERT GLOBALI ---
-        function updateGlobalAlerts() {
-            const today = new Date();
-            const in7Days = new Date();
-            in7Days.setDate(today.getDate() + 7);
-
-            const expiringCoupons = appData.coupons.filter(c => !c.used && new Date(c.expiryDate) <= in7Days);
-            const expiringPantry = appData.pantry.filter(p => new Date(p.expiryDate) <= in7Days);
-
-            const couponBadge = document.getElementById('coupon-alert-badge');
-            const pantryBadge = document.getElementById('pantry-alert-badge');
-            const globalBanner = document.getElementById('global-alert-banner');
-
-            if (expiringCoupons.length > 0) {
-                couponBadge.classList.remove('hidden');
-            } else {
-                couponBadge.classList.add('hidden');
-            }
-
-            if (expiringPantry.length > 0) {
-                pantryBadge.classList.remove('hidden');
-            } else {
-                pantryBadge.classList.add('hidden');
-            }
-
-            if (expiringCoupons.length > 0 || expiringPantry.length > 0) {
-                globalBanner.classList.remove('hidden');
-                document.getElementById('banner-desc').innerText = `Hai ${expiringCoupons.length} buoni in scadenza e ${expiringPantry.length} prodotti da consumare entro 7 giorni!`;
-            } else {
-                globalBanner.classList.add('hidden');
-            }
-        }
-
-        // --- ESPORTAZIONE DATA CSV ---
-        function exportCSV() {
-            let csv = "Data,Esercente,Componente,Categoria,Totale\n";
-            appData.receipts.forEach(r => {
-                csv += `"${r.date}","${r.store}","${r.member}","${r.category}",${r.total}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `spese_family_budget_${new Date().toISOString().split('T')[0]}.csv`);
-            a.click();
-        }
-    </script>
+    <!-- Sezione di destra: Dati Estratti / Form -->
+    <div class="card">
+      <div style="display:flex; align-items:center;">
+        <h2>Verifica Dati Bolletta</h2>
+        <span class="badge-status" id="statusBadge" style="display:none;">Elaborato</span>
+      </div>
+      <p class="subtitle">Controlla o completa le informazioni estratte prima del salvataggio.</p>
+
+      <form id="billForm" class="form-grid">
+        <div class="form-group">
+          <label for="fornitore">Ente / Fornitore</label>
+          <input type="text" id="fornitore" placeholder="es. Argos">
+        </div>
+
+        <div class="form-group">
+          <label for="tipoUtenza">Tipo Utenza</label>
+          <select id="tipoUtenza">
+            <option value="Gas / Gas Naturale">⚡ Luce / Elettricità</option>
+            <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
+            <option value="Acqua">💧 Acqua</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="importo">Importo Bolletta (€)</label>
+          <input type="text" id="importo" placeholder="0,00">
+        </div>
+
+        <div class="form-group">
+          <label for="scadenza">Data Scadenza Pagamento</label>
+          <input type="date" id="scadenza">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="periodo">Periodo di Riferimento / Note</label>
+          <input type="text" id="periodo" placeholder="es. Mese di Marzo 2026">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="statoPagamento">Stato Pagamento</label>
+          <select id="statoPagamento">
+            <option value="Da Pagare">⏳ Da Pagare</option>
+            <option value="Pagato">✅ Pagato</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-save" onclick="saveBill()">💾 Salva Bolletta nello Scadenziario</button>
+      </form>
+    </div>
+
+  </div>
+
+  <script>
+    let currentFile = null;
+
+    function setDocType(type) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    // Gestore selezione file
+    async function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      currentFile = file;
+      resetFormFields(); // Pulisce i vecchi dati per evitare che restino informazioni vecchie
+
+      if (file.type === 'application/pdf') {
+        await renderPdfPreview(file);
+      } else if (file.type.startsWith('image/')) {
+        renderImagePreview(file);
+      }
+
+      document.getElementById('btnAnalyze').disabled = false;
+    }
+
+    // Renderizza la prima pagina del PDF su Canvas tramite PDF.js
+    async function renderPdfPreview(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+
+      const canvas = document.getElementById('pdfCanvas');
+      const context = canvas.getContext('2d');
+      
+      const viewport = page.getViewport({ scale: 1.2 });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      document.getElementById('pdfPreviewContainer').style.display = 'flex';
+    }
+
+    // Renderizza anteprima se viene inserita un'immagine
+    function renderImagePreview(file) {
+      const canvas = document.getElementById('pdfCanvas');
+      const context = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+        document.getElementById('uploadPlaceholder').style.display = 'none';
+        document.getElementById('pdfPreviewContainer').style.display = 'flex';
+      };
+
+      img.src = URL.createObjectURL(file);
+    }
+
+    // Resetta i campi del form
+    function resetFormFields() {
+      document.getElementById('fornitore').value = '';
+      document.getElementById('importo').value = '';
+      document.getElementById('scadenza').value = '';
+      document.getElementById('periodo').value = '';
+      document.getElementById('statusBadge').style.display = 'none';
+    }
+
+    // Resetta il file caricato
+    function resetFile() {
+      currentFile = null;
+      document.getElementById('fileInput').value = '';
+      document.getElementById('pdfPreviewContainer').style.display = 'none';
+      document.getElementById('uploadPlaceholder').style.display = 'block';
+      document.getElementById('btnAnalyze').disabled = true;
+      resetFormFields();
+    }
+
+    // Simula / effettua la chiamata di analisi
+    async function analyzeWithGemini() {
+      if (!currentFile) return;
+
+      const btn = document.getElementById('btnAnalyze');
+      btn.innerText = "⏳ Analisi in corso...";
+      btn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('file', currentFile);
+
+      try {
+        // Sostituisci questo blocco con la chiamata endpoint reale del tuo backend
+        /*
+        const response = await fetch('/api/analyze-bill', { method: 'POST', body: formData });
+        const data = await response.json();
+        */
+
+        // Esempio di compilazione esito
+        document.getElementById('fornitore').value = "Argos";
+        document.getElementById('tipoUtenza').value = "Gas / Gas Naturale";
+        document.getElementById('importo').value = "121,00";
+        document.getElementById('scadenza').value = "2026-04-20";
+        document.getElementById('periodo').value = "01/03/2026 - 31/03/2026 (107,78 Smc)";
+        
+        document.getElementById('statusBadge').style.display = 'block';
+
+      } catch (error) {
+        console.error("Errore durante l'analisi:", error);
+      } finally {
+        btn.innerText = "✨ Analizza con Gemini AI";
+        btn.disabled = false;
+      }
+    }
+
+    function saveBill() {
+      alert("Bolletta salvata correttamente nello scadenziario!");
+    }
+  </script>
 </body>
 </html>
