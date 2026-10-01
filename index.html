@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FamilyBudget - AI Scanner Documenti</title>
   
-  <!-- Importazione PDF.js tramite CDN per il rendering delle anteprime -->
+  <!-- Importazione PDF.js per rendering delle anteprime -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -62,7 +62,6 @@
       margin-bottom: 20px;
     }
 
-    /* Tab per tipo documento */
     .tab-group {
       display: flex;
       gap: 8px;
@@ -85,7 +84,7 @@
       color: var(--accent-gold);
     }
 
-    /* Dropzone e Viewer PDF */
+    /* Stili Dropzone con feedback per Drag & Drop */
     .dropzone {
       border: 2px dashed #cbd5e1;
       border-radius: 12px;
@@ -97,6 +96,13 @@
       align-items: center;
       justify-content: center;
       position: relative;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--primary-color);
+      background-color: #eef2ff;
     }
 
     #pdfPreviewContainer {
@@ -133,6 +139,7 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 10;
     }
 
     .btn-ai {
@@ -158,7 +165,6 @@
       cursor: not-allowed;
     }
 
-    /* Form Layout */
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -222,7 +228,7 @@
 
   <div class="container">
     
-    <!-- Sezione di sinistra: Caricamento e Visualizzatore -->
+    <!-- Riquadro Sinistro -->
     <div class="card">
       <h2>✨ Scanner AI Documenti</h2>
       <p class="subtitle">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
@@ -232,18 +238,17 @@
         <button class="tab-btn active" onclick="setDocType('bolletta')">📑 Bolletta Utenza</button>
       </div>
 
+      <!-- Area Dropzone configurata per Drag & Drop -->
       <div class="dropzone" id="dropzone">
         <input type="file" id="fileInput" accept="application/pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
         
-        <!-- Contenitore dell'anteprima PDF / Immagine vera e propria -->
         <div id="pdfPreviewContainer" style="display:none;">
           <canvas id="pdfCanvas"></canvas>
-          <button type="button" onclick="resetFile()" class="btn-delete" title="Rimuovi file">🗑️️</button>
+          <button type="button" onclick="resetFile(event)" class="btn-delete" title="Rimuovi file">🗑</button>
         </div>
 
-        <!-- Placeholder di caricamento -->
-        <div id="uploadPlaceholder" onclick="document.getElementById('fileInput').click()" style="cursor:pointer;">
-          <p>📄 Clicca o trascina qui la bolletta (PDF/Immagine)</p>
+        <div id="uploadPlaceholder">
+          <p>📄 <strong>Trascina qui la tua bolletta</strong> (PDF/Immagine)<br><small style="color:#64748b;">oppure clicca per selezionarla</small></p>
         </div>
       </div>
 
@@ -252,7 +257,7 @@
       </button>
     </div>
 
-    <!-- Sezione di destra: Dati Estratti / Form -->
+    <!-- Riquadro Destro -->
     <div class="card">
       <div style="display:flex; align-items:center;">
         <h2>Verifica Dati Bolletta</h2>
@@ -269,7 +274,7 @@
         <div class="form-group">
           <label for="tipoUtenza">Tipo Utenza</label>
           <select id="tipoUtenza">
-            <option value="Gas / Gas Naturale">⚡ Luce / Elettricità</option>
+            <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
             <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
             <option value="Acqua">💧 Acqua</option>
           </select>
@@ -306,19 +311,53 @@
 
   <script>
     let currentFile = null;
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
 
     function setDocType(type) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
     }
 
-    // Gestore selezione file
-    async function handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    /* --- GESTIONE DRAG & DROP E CLIC --- */
+    dropzone.addEventListener('click', (e) => {
+      // Evita di aprire il selettore se si clicca sul cestino
+      if (e.target.closest('.btn-delete')) return;
+      if (!currentFile) fileInput.click();
+    });
 
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    });
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        processFile(file);
+      }
+    }
+
+    /* --- ELABORAZIONE FILE E RESET CAMPI --- */
+    async function processFile(file) {
       currentFile = file;
-      resetFormFields(); // Pulisce i vecchi dati per evitare che restino informazioni vecchie
+
+      // Reset completo del form e dell'input file per evitare dati residui
+      resetFormFields();
 
       if (file.type === 'application/pdf') {
         await renderPdfPreview(file);
@@ -329,7 +368,7 @@
       document.getElementById('btnAnalyze').disabled = false;
     }
 
-    // Renderizza la prima pagina del PDF su Canvas tramite PDF.js
+    // Renderizza PDF
     async function renderPdfPreview(file) {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -348,7 +387,7 @@
       document.getElementById('pdfPreviewContainer').style.display = 'flex';
     }
 
-    // Renderizza anteprima se viene inserita un'immagine
+    // Renderizza Immagine
     function renderImagePreview(file) {
       const canvas = document.getElementById('pdfCanvas');
       const context = canvas.getContext('2d');
@@ -365,26 +404,32 @@
       img.src = URL.createObjectURL(file);
     }
 
-    // Resetta i campi del form
+    // Svuota completamente i campi del Form
     function resetFormFields() {
       document.getElementById('fornitore').value = '';
+      document.getElementById('tipoUtenza').value = 'Luce / Elettricità';
       document.getElementById('importo').value = '';
       document.getElementById('scadenza').value = '';
       document.getElementById('periodo').value = '';
+      document.getElementById('statoPagamento').value = 'Da Pagare';
       document.getElementById('statusBadge').style.display = 'none';
     }
 
-    // Resetta il file caricato
-    function resetFile() {
+    // Reset totale del file caricato
+    function resetFile(event) {
+      if (event) event.stopPropagation();
+      
       currentFile = null;
-      document.getElementById('fileInput').value = '';
+      fileInput.value = ''; // Pulisce il valore per consentire il ricaricamento del medesimo file
+      
       document.getElementById('pdfPreviewContainer').style.display = 'none';
       document.getElementById('uploadPlaceholder').style.display = 'block';
       document.getElementById('btnAnalyze').disabled = true;
+      
       resetFormFields();
     }
 
-    // Simula / effettua la chiamata di analisi
+    /* --- CHIAMATA API ANALISI --- */
     async function analyzeWithGemini() {
       if (!currentFile) return;
 
@@ -392,23 +437,43 @@
       btn.innerText = "⏳ Analisi in corso...";
       btn.disabled = true;
 
+      // Pulisce i campi prima di estrarre i nuovi dati
+      resetFormFields();
+
       const formData = new FormData();
       formData.append('file', currentFile);
 
       try {
-        // Sostituisci questo blocco con la chiamata endpoint reale del tuo backend
-        /*
+        /* Chiamata reale al tuo backend:
         const response = await fetch('/api/analyze-bill', { method: 'POST', body: formData });
         const data = await response.json();
+        
+        document.getElementById('fornitore').value = data.fornitore;
+        document.getElementById('tipoUtenza').value = data.tipoUtenza;
+        document.getElementById('importo').value = data.importo;
+        document.getElementById('scadenza').value = data.scadenza;
+        document.getElementById('periodo').value = data.periodo;
+        document.getElementById('statoPagamento').value = data.statoPagamento;
         */
 
-        // Esempio di compilazione esito
-        document.getElementById('fornitore').value = "Argos";
-        document.getElementById('tipoUtenza').value = "Gas / Gas Naturale";
-        document.getElementById('importo').value = "121,00";
-        document.getElementById('scadenza').value = "2026-04-20";
-        document.getElementById('periodo').value = "01/03/2026 - 31/03/2026 (107,78 Smc)";
+        // Risposta dinamica di test basata sul file selezionato per verificare il cambio dati
+        const fileName = currentFile.name.toLowerCase();
         
+        if (fileName.includes('argos')) {
+          document.getElementById('fornitore').value = "Argos";
+          document.getElementById('tipoUtenza').value = "Gas / Gas Naturale";
+          document.getElementById('importo').value = "121,00";
+          document.getElementById('scadenza').value = "2026-04-20";
+          document.getElementById('periodo').value = "01/03/2026 - 31/03/2026 (107,78 Smc)";
+        } else {
+          // Dati generici dinamici per qualsiasi altro file caricato
+          document.getElementById('fornitore').value = "Nuovo Fornitore";
+          document.getElementById('tipoUtenza').value = "Luce / Elettricità";
+          document.getElementById('importo').value = "85,50";
+          document.getElementById('scadenza').value = "2026-05-15";
+          document.getElementById('periodo').value = "Mese Corrente";
+        }
+
         document.getElementById('statusBadge').style.display = 'block';
 
       } catch (error) {
@@ -421,6 +486,7 @@
 
     function saveBill() {
       alert("Bolletta salvata correttamente nello scadenziario!");
+      resetFile(null);
     }
   </script>
 </body>
