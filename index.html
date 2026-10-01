@@ -26,7 +26,6 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -381,7 +380,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">Periodo di Riferimento / Note</label>
-                                    <input type="text" id="bill-period" placeholder="Es. Bimester Gen-Feb 2026 (Consumo 450 kWh)" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
+                                    <input type="text" id="bill-period" placeholder="Es. Bimestre Gen-Feb 2026 (Consumo 450 kWh)" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">Stato Pagamento</label>
@@ -576,12 +575,10 @@
         // --- INIZIALIZZAZIONE ---
         window.addEventListener('DOMContentLoaded', () => {
             loadState();
-            // Imposta data odierna nei form
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('rcpt-date').value = today;
             document.getElementById('bill-due-date').value = today;
             
-            // Inizializza riga articolo base nello scanner
             if (document.getElementById('rcpt-items-tbody').children.length === 0) {
                 addRcptItemRow('Pasta Barilla 500g', 'Alimentari', 1.20, true);
             }
@@ -704,7 +701,6 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-            // Style nav desktop
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-indigo-800', 'text-white');
                 btn.classList.add('text-indigo-100');
@@ -715,7 +711,6 @@
                 activeBtn.classList.remove('text-indigo-100');
             }
 
-            // Style mobile nav
             ['dashboard', 'scanner', 'archive', 'coupons', 'pantry'].forEach(t => {
                 const mobBtn = document.getElementById(`mob-nav-${t}`);
                 if (mobBtn) {
@@ -759,7 +754,6 @@
 
         // --- DASHBOARD & KPI ---
         function renderDashboard() {
-            // Totale Spese Mese
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
@@ -773,17 +767,14 @@
 
             document.getElementById('kpi-month-total').innerText = `€ ${monthTotal.toFixed(2)}`;
 
-            // Totale Bollette
             const billsTotal = appData.bills
                 .filter(b => b.status === 'DA_PAGARE')
                 .reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
             document.getElementById('kpi-bills-total').innerText = `€ ${billsTotal.toFixed(2)}`;
 
-            // Buoni Attivi
             const activeCoupons = appData.coupons.filter(c => !c.used).length;
             document.getElementById('kpi-coupons-active').innerText = `${activeCoupons} disponibili`;
 
-            // Scadenze Dispensa Entro 7 Giorni
             const in7Days = new Date();
             in7Days.setDate(now.getDate() + 7);
 
@@ -833,7 +824,6 @@
 
         // --- GRAFICI CHART.JS ---
         function renderDashboardCharts() {
-            // Chart Categorie
             const categories = ['Alimentari', 'Casa', 'Abbigliamento', 'Salute', 'Svago', 'Trasporti', 'Altro'];
             const categoryTotals = categories.map(cat => {
                 return appData.receipts
@@ -861,7 +851,6 @@
                 });
             }
 
-            // Chart Membri
             const members = ['Mamma', 'Papà', 'Figlio/a', 'Famiglia'];
             const memberTotals = members.map(m => {
                 return appData.receipts
@@ -966,7 +955,6 @@
 
                 if (currentDocType === 'receipt') {
                     formRcpt.classList.remove('hidden');
-                    // Mock Dati estratti da Gemini
                     document.getElementById('rcpt-store').value = "Conad Superstore";
                     document.getElementById('rcpt-main-cat').value = "Alimentari";
                     
@@ -978,7 +966,6 @@
                     calculateRcptTotal();
                 } else {
                     formBill.classList.remove('hidden');
-                    // Mock Dati Bolletta
                     document.getElementById('bill-provider').value = "A2A Energia";
                     document.getElementById('bill-type').value = "Luce";
                     document.getElementById('bill-amount').value = "112.40";
@@ -1050,7 +1037,6 @@
                     items.push({ name, category: cat, price });
                     total += price;
 
-                    // Se selezionato, aggiunge in dispensa automaticamente
                     if (inPantry) {
                         const in7Days = new Date();
                         in7Days.setDate(in7Days.getDate() + 7);
@@ -1201,7 +1187,12 @@
                     <div>
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">${c.store}</span>
-                            <span class="text-[10px] text-slate-400">Scade: ${c.expiryDate}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-slate-400">Scade: ${c.expiryDate}</span>
+                                <button onclick="deleteCoupon('${c.id}')" class="text-rose-400 hover:text-rose-600 p-1 text-xs transition-colors" title="Elimina buono">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                         <h4 class="font-bold text-slate-800 text-base mb-1">${c.discount}</h4>
                         <p class="text-xs font-mono bg-slate-100 p-2 rounded-lg text-slate-600 text-center tracking-wider font-semibold border border-slate-200 my-3">${c.code}</p>
@@ -1217,6 +1208,13 @@
             const coupon = appData.coupons.find(c => c.id === id);
             if (coupon) {
                 coupon.used = !coupon.used;
+                saveState();
+            }
+        }
+
+        function deleteCoupon(id) {
+            if (confirm("Sei sicuro di voler eliminare questo buono sconto?")) {
+                appData.coupons = appData.coupons.filter(c => c.id !== id);
                 saveState();
             }
         }
