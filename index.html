@@ -229,7 +229,7 @@
                         </div>
 
                         <!-- Dropzone File / Foto -->
-                        <div id="scanner-dropzone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 transition-all rounded-xl p-6 text-center cursor-pointer min-h-[220px] flex flex-col items-center justify-center">
+                        <div id="scanner-dropzone" onclick="document.getElementById('scanner-file-input').click()" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 transition-all rounded-xl p-6 text-center cursor-pointer min-h-[220px] flex flex-col items-center justify-center">
                             <input type="file" id="scanner-file-input" accept="image/*,application/pdf" capture="environment" class="hidden" onchange="handleScannerFileSelect(event)">
                             
                             <div id="scanner-upload-placeholder" class="space-y-3">
@@ -454,8 +454,8 @@
                                 <th class="p-3 text-center">Azione</th>
                             </tr>
                         </thead>
-                        <tbody id="arch-receipts-tbody" class="divide-y divide-slate-100">
-                            <!-- Popolato via JS -->
+                        <tbody id="receipts-archive-tbody" class="divide-y divide-slate-100">
+                            <!-- Popolato dinamicamente -->
                         </tbody>
                     </table>
                 </div>
@@ -469,1159 +469,879 @@
                             <tr>
                                 <th class="p-3">Fornitore</th>
                                 <th class="p-3">Tipo Utenza</th>
+                                <th class="p-3">Periodo / Note</th>
                                 <th class="p-3">Scadenza</th>
-                                <th class="p-3">Note / Periodo</th>
-                                <th class="p-3">Stato</th>
                                 <th class="p-3 text-right">Importo</th>
-                                <th class="p-3 text-center">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="arch-bills-tbody" class="divide-y divide-slate-100">
-                            <!-- Popolato via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- TAB 4: WALLET BUONI SCONTO & ALERT -->
-        <section id="tab-coupons" class="tab-content hidden space-y-6 animate-fade-in">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Form Aggiunta Buono -->
-                <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit space-y-4">
-                    <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle text-amber-500"></i> Aggiungi Buono Sconto
-                    </h3>
-                    <p class="text-xs text-slate-500">Registra i coupon del supermercato (es. Eurospar, Coop) per ricevere avvisi di utilizzo.</p>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Supermercato / Negozio</label>
-                            <input type="text" id="cpn-store" placeholder="Es. Eurospar, Esselunga..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Valore Sconto (€)</label>
-                            <input type="number" step="0.5" id="cpn-discount" placeholder="Es. 6.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Spesa Minima Richiesta (€)</label>
-                            <input type="number" step="1" id="cpn-min-spend" placeholder="Es. 25.00" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Valido fino al (Scadenza)</label>
-                            <input type="date" id="cpn-expiry" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Note o Condizioni Particolari</label>
-                            <input type="text" id="cpn-notes" placeholder="Es. Valido solo il Giovedì con carta fedeltà" class="w-full text-xs border border-slate-300 rounded-lg p-2.5">
-                        </div>
-
-                        <button onclick="saveCoupon()" class="w-full bg-amber-500 hover:bg-amber-600 text-indigo-950 font-bold py-2.5 rounded-xl shadow transition-all text-xs flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-ticket"></i> Salva Buono nel Wallet
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Lista Buoni Attivi e Suggerimenti -->
-                <div class="lg:col-span-8 space-y-4">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-wallet text-indigo-600"></i> Buoni Sconto & Promemoria Spesa
-                            </h3>
-                            <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full" id="active-coupons-count">0 Attivi</span>
-                        </div>
-
-                        <div id="coupons-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Cards generate dinamicamente -->
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- TAB 5: DISPENSA & SCORTE CON DATE DI SCADENZA -->
-        <section id="tab-pantry" class="tab-content hidden space-y-6 animate-fade-in">
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-basket-shopping text-emerald-600"></i> Dispensa & Gestione Scorte
-                        </h3>
-                        <p class="text-xs text-slate-500">Tieni traccia dei prodotti acquistati e monitora le scadenze per evitare sprechi.</p>
-                    </div>
-                    <button onclick="openManualPantryModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-3 rounded-xl shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> Aggiungi Prodotto Manuale
-                    </button>
-                </div>
-
-                <!-- Filtri Dispensa -->
-                <div class="flex gap-2">
-                    <button onclick="filterPantry('ALL')" id="pantry-filter-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">Tutti i Prodotti</button>
-                    <button onclick="filterPantry('EXPIRING')" id="pantry-filter-expiring" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">⚠️ In Scadenza (7gg)</button>
-                </div>
-
-                <!-- Tabella Scorte -->
-                <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
-                            <tr>
-                                <th class="p-3">Prodotto</th>
-                                <th class="p-3">Categoria</th>
-                                <th class="p-3">Data Acquisto</th>
-                                <th class="p-3">Data Scadenza</th>
-                                <th class="p-3">Quantità / Scorta</th>
+                                <th class="p-3 text-center">Stato</th>
                                 <th class="p-3 text-center">Azione</th>
                             </tr>
                         </thead>
-                        <tbody id="pantry-tbody" class="divide-y divide-slate-100">
-                            <!-- Popolato via JS -->
+                        <tbody id="bills-archive-tbody" class="divide-y divide-slate-100">
+                            <!-- Popolato dinamicamente -->
                         </tbody>
                     </table>
                 </div>
+            </div>
 
+        </section>
+
+        <!-- TAB 4: BUONI SCONTO & ALERT -->
+        <section id="tab-coupons" class="tab-content hidden space-y-6 animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-ticket text-amber-500"></i> Buoni Sconto & Voucher Attivi
+                    </h2>
+                    <p class="text-xs text-slate-500">Gestisci i tuoi coupon per non farli scadere inutilizzati.</p>
+                </div>
+                <button onclick="showAddCouponModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-plus"></i> Aggiungi Buono
+                </button>
+            </div>
+
+            <div id="coupons-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card Buoni generate dinamicamente -->
+            </div>
+        </section>
+
+        <!-- TAB 5: DISPENSA & SCORTE ALIMENTARI -->
+        <section id="tab-pantry" class="tab-content hidden space-y-6 animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-basket-shopping text-emerald-600"></i> Gestione Scorte & Dispensa
+                    </h2>
+                    <p class="text-xs text-slate-500">Monitora i prodotti in casa ed evita gli sprechi con gli avvisi sulla data di scadenza.</p>
+                </div>
+                <button onclick="showAddPantryModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-plus"></i> Aggiungi Prodotto
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
+                        <tr>
+                            <th class="p-3">Prodotto</th>
+                            <th class="p-3">Categoria</th>
+                            <th class="p-3 text-center">Quantità</th>
+                            <th class="p-3">Scadenza</th>
+                            <th class="p-3 text-center">Stato</th>
+                            <th class="p-3 text-center">Azione</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pantry-tbody" class="divide-y divide-slate-100">
+                        <!-- Popolato dinamicamente -->
+                    </tbody>
+                </table>
             </div>
         </section>
 
     </main>
 
-    <!-- Mobile Bottom Nav -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-xl z-40 flex justify-around py-2 text-[10px] font-semibold text-slate-500">
-        <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="flex flex-col items-center text-indigo-600">
-            <i class="fa-solid fa-chart-line text-base mb-0.5"></i> Home
+    <!-- Bottom Navigation per Mobile -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-50 text-[10px] font-semibold">
+        <button onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="flex flex-col items-center gap-1 text-indigo-600">
+            <i class="fa-solid fa-chart-line text-base"></i> Home
         </button>
-        <button onclick="switchTab('scanner')" id="mobile-nav-scanner" class="flex flex-col items-center">
-            <i class="fa-solid fa-wand-magic-sparkles text-base mb-0.5 text-amber-500"></i> Scanner
+        <button onclick="switchTab('scanner')" id="mob-nav-scanner" class="flex flex-col items-center gap-1 text-slate-500">
+            <i class="fa-solid fa-wand-magic-sparkles text-base"></i> AI Scanner
         </button>
-        <button onclick="switchTab('archive')" id="mobile-nav-archive" class="flex flex-col items-center">
-            <i class="fa-solid fa-box-archive text-base mb-0.5"></i> Archivio
+        <button onclick="switchTab('archive')" id="mob-nav-archive" class="flex flex-col items-center gap-1 text-slate-500">
+            <i class="fa-solid fa-box-archive text-base"></i> Archivio
         </button>
-        <button onclick="switchTab('coupons')" id="mobile-nav-coupons" class="flex flex-col items-center">
-            <i class="fa-solid fa-ticket text-base mb-0.5 text-amber-500"></i> Buoni
+        <button onclick="switchTab('coupons')" id="mob-nav-coupons" class="flex flex-col items-center gap-1 text-slate-500 relative">
+            <i class="fa-solid fa-ticket text-base"></i> Buoni
         </button>
-        <button onclick="switchTab('pantry')" id="mobile-nav-pantry" class="flex flex-col items-center">
-            <i class="fa-solid fa-basket-shopping text-base mb-0.5 text-emerald-500"></i> Dispensa
+        <button onclick="switchTab('pantry')" id="mob-nav-pantry" class="flex flex-col items-center gap-1 text-slate-500 relative">
+            <i class="fa-solid fa-basket-shopping text-base"></i> Dispensa
         </button>
-    </div>
-
-    <!-- Modale Dettaglio Scontrino -->
-    <div id="receipt-detail-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-bold text-slate-800 text-base" id="modal-rcpt-store">Dettaglio Spesa</h3>
-                <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="text-xs space-y-1 text-slate-600">
-                <p><strong>Data:</strong> <span id="modal-rcpt-date"></span></p>
-                <p><strong>Acquistato da:</strong> <span id="modal-rcpt-member"></span></p>
-                <p><strong>Categoria:</strong> <span id="modal-rcpt-cat"></span></p>
-            </div>
-            <div class="border border-slate-200 rounded-xl overflow-hidden">
-                <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-50 text-slate-600 border-b">
-                        <tr>
-                            <th class="p-2">Prodotto</th>
-                            <th class="p-2">Cat.</th>
-                            <th class="p-2 text-right">Prezzo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modal-rcpt-items-list" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-            <div class="flex justify-between items-center font-bold text-slate-800 border-t pt-2">
-                <span>Totale:</span>
-                <span id="modal-rcpt-total" class="text-indigo-600 text-lg">€ 0.00</span>
-            </div>
-            <button onclick="closeReceiptModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-xl text-xs">Chiudi</button>
-        </div>
-    </div>
-
-    <!-- Modale Prodotto Dispensa Manuale -->
-    <div id="pantry-manual-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-bold text-slate-800 text-sm">Aggiungi Prodotto in Dispensa</h3>
-                <button onclick="closePantryModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome Prodotto</label>
-                    <input type="text" id="pantry-manual-name" placeholder="Es. Latte Intero, Pasta..." class="w-full text-xs border border-slate-300 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Categoria</label>
-                    <select id="pantry-manual-cat" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white">
-                        <option value="Alimentari">🛒 Alimentari</option>
-                        <option value="Casa">🏠 Casa</option>
-                        <option value="Salute">💊 Salute</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Data Scadenza</label>
-                    <input type="date" id="pantry-manual-expiry" class="w-full text-xs border border-slate-300 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Quantità</label>
-                    <input type="number" id="pantry-manual-qty" value="1" min="1" class="w-full text-xs border border-slate-300 rounded-lg p-2">
-                </div>
-            </div>
-            <button onclick="saveManualPantryItem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow">Salva in Dispensa</button>
-        </div>
-    </div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-20 md:bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs hidden z-50 animate-fade-in border border-slate-700">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-        <span id="toast-message">Operazione completata</span>
     </div>
 
     <!-- LOGICA JAVASCRIPT APP -->
     <script>
-        // Data Stores (LocalStorage)
-        let receipts = JSON.parse(localStorage.getItem('fb_receipts') || '[]');
-        let bills = JSON.parse(localStorage.getItem('fb_bills') || '[]');
-        let coupons = JSON.parse(localStorage.getItem('fb_coupons') || '[]');
-        let pantry = JSON.parse(localStorage.getItem('fb_pantry') || '[]');
+        // --- STATO APPLICAZIONE ---
+        let appData = {
+            receipts: [],
+            bills: [],
+            coupons: [],
+            pantry: []
+        };
 
-        // Runtime state
-        let currentDocType = 'receipt'; // 'receipt' or 'bill'
-        let currentFileBase64 = null;
-        let currentFileMime = null;
-        let chartCatInstance = null;
-        let chartMemInstance = null;
-        let activePantryFilter = 'ALL';
+        let currentDocType = 'receipt';
+        let currentSelectedFile = null;
+        let chartCategoriesInstance = null;
+        let chartMembersInstance = null;
 
-        window.onload = function() {
-            // Imposta date di default
-            document.getElementById('rcpt-date').valueAsDate = new Date();
-            document.getElementById('bill-due-date').valueAsDate = new Date();
+        // --- INIZIALIZZAZIONE ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            // Imposta data odierna nei form
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('rcpt-date').value = today;
+            document.getElementById('bill-due-date').value = today;
             
-            // Inizializza riga scontrino vuota
-            addRcptItemRow();
+            // Inizializza riga articolo base nello scanner
+            if (document.getElementById('rcpt-items-tbody').children.length === 0) {
+                addRcptItemRow('Pasta Barilla 500g', 'Alimentari', 1.20, true);
+            }
 
-            // Renderizza iniziale
-            updateGlobalAlerts();
+            renderAll();
+        });
+
+        // --- PERSISTENZA LOCALSTORAGE ---
+        function loadState() {
+            const saved = localStorage.getItem('family_budget_app_data');
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Errore caricamento stato", e);
+                    initDemoData();
+                }
+            } else {
+                initDemoData();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('family_budget_app_data', JSON.stringify(appData));
+            renderAll();
+        }
+
+        function initDemoData() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            
+            const in3Days = new Date(today);
+            in3Days.setDate(today.getDate() + 3);
+            const in3DaysStr = in3Days.toISOString().split('T')[0];
+
+            const in10Days = new Date(today);
+            in10Days.setDate(today.getDate() + 10);
+            const in10DaysStr = in10Days.toISOString().split('T')[0];
+
+            appData = {
+                receipts: [
+                    {
+                        id: 'r1',
+                        date: dateStr,
+                        store: 'Eurospar',
+                        member: 'Mamma',
+                        category: 'Alimentari',
+                        total: 45.80,
+                        items: [
+                            { name: 'Latte Intero 1L', category: 'Alimentari', price: 1.40 },
+                            { name: 'Caffè Lavazza', category: 'Alimentari', price: 4.50 },
+                            { name: 'Detersivo Piatti', category: 'Casa', price: 2.20 }
+                        ]
+                    },
+                    {
+                        id: 'r2',
+                        date: dateStr,
+                        store: 'Decathlon',
+                        member: 'Papà',
+                        category: 'Svago',
+                        total: 35.00,
+                        items: [
+                            { name: 'Scarpe Running', category: 'Svago', price: 35.00 }
+                        ]
+                    }
+                ],
+                bills: [
+                    {
+                        id: 'b1',
+                        provider: 'Enel Energia',
+                        type: 'Luce',
+                        amount: 85.50,
+                        dueDate: in10DaysStr,
+                        period: 'Bimestre Ago-Set',
+                        status: 'DA_PAGARE'
+                    }
+                ],
+                coupons: [
+                    {
+                        id: 'c1',
+                        store: 'Coop',
+                        code: 'SPESA10',
+                        discount: '10€ su 50€',
+                        expiryDate: in3DaysStr,
+                        used: false
+                    }
+                ],
+                pantry: [
+                    {
+                        id: 'p1',
+                        name: 'Yogurt Greco',
+                        category: 'Freschi',
+                        quantity: 2,
+                        expiryDate: in3DaysStr
+                    },
+                    {
+                        id: 'p2',
+                        name: 'Passata di Pomodoro',
+                        category: 'Conserve',
+                        quantity: 4,
+                        expiryDate: in10DaysStr
+                    }
+                ]
+            };
+            saveState();
+        }
+
+        // --- RENDER COMPLETO DELL'INTERFACCIA ---
+        function renderAll() {
             renderDashboard();
             renderReceiptsArchive();
             renderBillsArchive();
             renderCoupons();
             renderPantry();
-        };
+            updateGlobalAlerts();
+        }
 
-        // Navigation Tabs
+        // --- SWITCH TAB PRINCIPALI ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-            // Header Nav styling
+            // Style nav desktop
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-indigo-800', 'text-white');
                 btn.classList.add('text-indigo-100');
             });
             const activeBtn = document.getElementById(`nav-${tabId}`);
-            if (activeBtn) activeBtn.classList.add('bg-indigo-800', 'text-white');
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-800', 'text-white');
+                activeBtn.classList.remove('text-indigo-100');
+            }
 
-            // Trigger re-renders se necessario
-            if (tabId === 'dashboard') renderDashboard();
-            if (tabId === 'archive') { renderReceiptsArchive(); renderBillsArchive(); }
-            if (tabId === 'coupons') renderCoupons();
-            if (tabId === 'pantry') renderPantry();
-        }
+            // Style mobile nav
+            ['dashboard', 'scanner', 'archive', 'coupons', 'pantry'].forEach(t => {
+                const mobBtn = document.getElementById(`mob-nav-${t}`);
+                if (mobBtn) {
+                    if (t === tabId) {
+                        mobBtn.classList.add('text-indigo-600');
+                        mobBtn.classList.remove('text-slate-500');
+                    } else {
+                        mobBtn.classList.remove('text-indigo-600');
+                        mobBtn.classList.add('text-slate-500');
+                    }
+                }
+            });
 
-        function syncMember(val) {
-            document.getElementById('rcpt-member').value = val;
-        }
-
-        // --- GLOBAL ALERTS AND PROMEMORIA ---
-        function updateGlobalAlerts() {
-            const today = new Date().toISOString().slice(0, 10);
-            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-            // Buoni in scadenza nei prossimi 7 giorni
-            const expiringCoupons = coupons.filter(c => c.status === 'ATTIVO' && c.expiryDate <= in7Days);
-            
-            // Prodotti dispensa in scadenza nei prossimi 7 giorni
-            const expiringPantry = pantry.filter(p => p.expiryDate && p.expiryDate <= in7Days);
-
-            // Bollette da pagare
-            const unpaidBills = bills.filter(b => b.status === 'DA_PAGARE');
-
-            const banner = document.getElementById('global-alert-banner');
-            const couponBadge = document.getElementById('coupon-alert-badge');
-            const pantryBadge = document.getElementById('pantry-alert-badge');
-
-            if (expiringCoupons.length > 0) couponBadge.classList.remove('hidden');
-            else couponBadge.classList.add('hidden');
-
-            if (expiringPantry.length > 0) pantryBadge.classList.remove('hidden');
-            else pantryBadge.classList.add('hidden');
-
-            if (expiringCoupons.length > 0 || expiringPantry.length > 0 || unpaidBills.length > 0) {
-                banner.classList.remove('hidden');
-                document.getElementById('banner-desc').innerText = 
-                    `Ci sono ${expiringCoupons.length} buoni in scadenza, ${expiringPantry.length} prodotti da consumare a breve e ${unpaidBills.length} bollette da pagare.`;
-            } else {
-                banner.classList.add('hidden');
+            if (tabId === 'dashboard') {
+                renderDashboardCharts();
             }
         }
 
-        // --- SCANNER AI (GEMINI INTEGRATION) ---
+        // --- SWITCH SUBTAB ARCHIVIO ---
+        function switchArchiveSubTab(subTab) {
+            document.getElementById('subtab-receipts').classList.add('hidden');
+            document.getElementById('subtab-bills').classList.add('hidden');
+            document.getElementById(`subtab-${subTab}`).classList.remove('hidden');
+
+            const btnReceipts = document.getElementById('subtab-btn-receipts');
+            const btnBills = document.getElementById('subtab-btn-bills');
+
+            if (subTab === 'receipts') {
+                btnReceipts.className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
+                btnBills.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+            } else {
+                btnBills.className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
+                btnReceipts.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+            }
+        }
+
+        function syncMember(val) {
+            const rcptMember = document.getElementById('rcpt-member');
+            if (rcptMember) rcptMember.value = val;
+        }
+
+        // --- DASHBOARD & KPI ---
+        function renderDashboard() {
+            // Totale Spese Mese
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            const monthTotal = appData.receipts
+                .filter(r => {
+                    const d = new Date(r.date);
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                })
+                .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
+
+            document.getElementById('kpi-month-total').innerText = `€ ${monthTotal.toFixed(2)}`;
+
+            // Totale Bollette
+            const billsTotal = appData.bills
+                .filter(b => b.status === 'DA_PAGARE')
+                .reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
+            document.getElementById('kpi-bills-total').innerText = `€ ${billsTotal.toFixed(2)}`;
+
+            // Buoni Attivi
+            const activeCoupons = appData.coupons.filter(c => !c.used).length;
+            document.getElementById('kpi-coupons-active').innerText = `${activeCoupons} disponibili`;
+
+            // Scadenze Dispensa Entro 7 Giorni
+            const in7Days = new Date();
+            in7Days.setDate(now.getDate() + 7);
+
+            const expiringPantry = appData.pantry.filter(p => {
+                const exp = new Date(p.expiryDate);
+                return exp >= now && exp <= in7Days;
+            }).length;
+            document.getElementById('kpi-pantry-expiring').innerText = `${expiringPantry} prodotti`;
+
+            renderTopProducts();
+            renderDashboardCharts();
+        }
+
+        function renderTopProducts() {
+            const productCounts = {};
+            appData.receipts.forEach(r => {
+                (r.items || []).forEach(item => {
+                    const name = item.name.trim();
+                    if (name) {
+                        productCounts[name] = (productCounts[name] || 0) + 1;
+                    }
+                });
+            });
+
+            const sorted = Object.entries(productCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6);
+
+            const container = document.getElementById('top-products-list');
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-4 text-center">Nessun dato acquisti disponibile.</p>`;
+                return;
+            }
+
+            container.innerHTML = sorted.map(([name, count]) => `
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center">
+                            ${count}x
+                        </div>
+                        <span class="text-xs font-semibold text-slate-700">${name}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-medium">Frequente</span>
+                </div>
+            `).join('');
+        }
+
+        // --- GRAFICI CHART.JS ---
+        function renderDashboardCharts() {
+            // Chart Categorie
+            const categories = ['Alimentari', 'Casa', 'Abbigliamento', 'Salute', 'Svago', 'Trasporti', 'Altro'];
+            const categoryTotals = categories.map(cat => {
+                return appData.receipts
+                    .filter(r => r.category === cat)
+                    .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
+            });
+
+            const ctxCat = document.getElementById('chart-categories');
+            if (ctxCat) {
+                if (chartCategoriesInstance) chartCategoriesInstance.destroy();
+                chartCategoriesInstance = new Chart(ctxCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categories,
+                        datasets: [{
+                            data: categoryTotals,
+                            backgroundColor: ['#4f46e5', '#0ea5e9', '#ec4899', '#10b981', '#f59e0b', '#6366f1', '#94a3b8']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                    }
+                });
+            }
+
+            // Chart Membri
+            const members = ['Mamma', 'Papà', 'Figlio/a', 'Famiglia'];
+            const memberTotals = members.map(m => {
+                return appData.receipts
+                    .filter(r => r.member === m)
+                    .reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
+            });
+
+            const ctxMem = document.getElementById('chart-members');
+            if (ctxMem) {
+                if (chartMembersInstance) chartMembersInstance.destroy();
+                chartMembersInstance = new Chart(ctxMem, {
+                    type: 'bar',
+                    data: {
+                        labels: members,
+                        datasets: [{
+                            label: 'Totale Speso (€)',
+                            data: memberTotals,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        // --- SCANNER AI & MOCK GEMINI ---
         function setDocType(type) {
             currentDocType = type;
-            const btnReceipt = document.getElementById('doc-type-receipt');
+            const btnRcpt = document.getElementById('doc-type-receipt');
             const btnBill = document.getElementById('doc-type-bill');
-            const formReceipt = document.getElementById('form-receipt-container');
+            const formRcpt = document.getElementById('form-receipt-container');
             const formBill = document.getElementById('form-bill-container');
-            const iconPlaceholder = document.getElementById('doc-icon-placeholder');
 
             if (type === 'receipt') {
-                btnReceipt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700";
+                btnRcpt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-indigo-600 bg-indigo-50 text-indigo-700";
                 btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
-                formReceipt.classList.remove('hidden');
+                formRcpt.classList.remove('hidden');
                 formBill.classList.add('hidden');
-                iconPlaceholder.className = "fa-solid fa-receipt";
                 document.getElementById('form-title').innerText = "Verifica Dati Scontrino";
             } else {
                 btnBill.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-amber-600 bg-amber-50 text-amber-700";
-                btnReceipt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
+                btnRcpt.className = "p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 border-slate-200 text-slate-600 hover:bg-slate-50";
                 formBill.classList.remove('hidden');
-                formReceipt.classList.add('hidden');
-                iconPlaceholder.className = "fa-solid fa-file-invoice-dollar";
+                formRcpt.classList.add('hidden');
                 document.getElementById('form-title').innerText = "Verifica Dati Bolletta";
             }
         }
 
-        const dropzone = document.getElementById('scanner-dropzone');
-        const scannerFileInput = document.getElementById('scanner-file-input');
+        function handleScannerFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        dropzone.addEventListener('click', () => scannerFileInput.click());
+            currentSelectedFile = file;
+            document.getElementById('btn-run-ai').disabled = false;
+            document.getElementById('scanner-upload-placeholder').classList.add('hidden');
+            document.getElementById('scanner-preview-container').classList.remove('hidden');
 
-        function handleScannerFileSelect(e) {
-            if (e.target.files.length > 0) processScannerFile(e.target.files[0]);
-        }
-
-        function processScannerFile(file) {
-            currentFileMime = file.type;
-            const reader = new FileReader();
-
-            if (file.type === 'application/pdf') {
-                reader.onload = function(e) {
-                    currentFileBase64 = e.target.result;
-                    document.getElementById('scanner-upload-placeholder').classList.add('hidden');
-                    document.getElementById('scanner-preview-container').classList.remove('hidden');
-                    document.getElementById('scanner-img-preview').classList.add('hidden');
-                    document.getElementById('scanner-pdf-preview').classList.remove('hidden');
-                    document.getElementById('btn-run-ai').disabled = false;
-                };
-                reader.readAsDataURL(file);
-            } else if (file.type.startsWith('image/')) {
-                reader.onload = function(e) {
-                    currentFileBase64 = e.target.result;
-                    document.getElementById('scanner-img-preview').src = currentFileBase64;
-                    document.getElementById('scanner-upload-placeholder').classList.add('hidden');
-                    document.getElementById('scanner-preview-container').classList.remove('hidden');
+            if (file.type.includes('image')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('scanner-img-preview').src = e.target.result;
                     document.getElementById('scanner-img-preview').classList.remove('hidden');
                     document.getElementById('scanner-pdf-preview').classList.add('hidden');
-                    document.getElementById('btn-run-ai').disabled = false;
                 };
                 reader.readAsDataURL(file);
-            } else {
-                showToast('Carica una foto o un PDF valido', 'error');
+            } else if (file.type.includes('pdf')) {
+                document.getElementById('scanner-img-preview').classList.add('hidden');
+                document.getElementById('scanner-pdf-preview').classList.remove('hidden');
             }
         }
 
         function resetScanner(e) {
-            if(e) e.stopPropagation();
-            currentFileBase64 = null;
-            currentFileMime = null;
-            scannerFileInput.value = '';
+            if (e) e.stopPropagation();
+            currentSelectedFile = null;
+            document.getElementById('scanner-file-input').value = '';
+            document.getElementById('btn-run-ai').disabled = true;
             document.getElementById('scanner-upload-placeholder').classList.remove('hidden');
             document.getElementById('scanner-preview-container').classList.add('hidden');
-            document.getElementById('btn-run-ai').disabled = true;
             document.getElementById('ai-status-tag').classList.add('hidden');
         }
 
-        async function analizzaDocumentoConGemini(file) {
-    try {
-        // Convertiamo il file in Base64
-        const base64Data = await convertFileToBase64(file);
-        
-        // Riconoscimento automatico del tipo di file (MIME type)
-        let mimeType = file.type;
-        if (!mimeType) {
-            if (file.name.endsWith('.pdf')) mimeType = 'application/pdf';
-            else if (file.name.endsWith('.png')) mimeType = 'image/png';
-            else mimeType = 'image/jpeg';
-        }
+        function analyzeDocumentWithGemini() {
+            if (!currentSelectedFile) return;
 
-        // Prompt specifico per la bolletta o lo scontrino
-        const promptText = `
-        Analizza questo documento (bolletta o scontrino).
-        Estrai le seguenti informazioni in formato JSON esatto:
-        {
-          "fornitore": "Nome ente o fornitore",
-          "tipoUtenza": "Gas Riscaldamento" | "Luce / Elettricità" | "Acqua" | "Telefono / Internet" | "Altro",
-          "importo": numero (es. 121.00),
-          "scadenza": "YYYY-MM-DD",
-          "periodoNote": "Descrizione sintetica del periodo o consumo",
-          "statoPagamento": "Da Pagare" | "Pagato"
-        }
-        Rispondi solo ed esclusivamente con il codice JSON valido.
-        `;
+            const spinner = document.getElementById('ai-loading-spinner');
+            const formRcpt = document.getElementById('form-receipt-container');
+            const formBill = document.getElementById('form-bill-container');
 
-        // Struttura della richiesta API per Gemini che supporta PDF e Immagini
-        const requestBody = {
-            contents: [{
-                parts: [
-                    {
-                        inline_data: {
-                            mime_type: mimeType, // 'application/pdf' o 'image/jpeg' ecc.
-                            data: base64Data.split(',')[1] // Rimuove il prefisso data:...;base64,
-                        }
-                    },
-                    {
-                        text: promptText
-                    }
-                ]
-            }]
-        };
+            spinner.classList.remove('hidden');
+            formRcpt.classList.add('hidden');
+            formBill.classList.add('hidden');
 
-        // Esegui la chiamata alla REST API di Gemini
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
+            setTimeout(() => {
+                spinner.classList.add('hidden');
+                document.getElementById('ai-status-tag').classList.remove('hidden');
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error?.message || 'Errore nella chiamata API');
-        }
-
-        // Estrazione della risposta JSON dal testo restituito da Gemini
-        const textResponse = data.candidates[0].content.parts[0].text;
-        const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-            const result = JSON.parse(jsonMatch[0]);
-            
-            // Popola i campi del form con i dati estratti
-            document.getElementById('enteFornitore').value = result.fornitore || '';
-            document.getElementById('importoBolletta').value = result.importo || 0;
-            document.getElementById('dataScadenza').value = result.scadenza || '';
-            document.getElementById('periodoNote').value = result.periodoNote || '';
-            
-            // Seleziona il tipo utenza se presente nel select
-            if (result.tipoUtenza) {
-                document.getElementById('tipoUtenza').value = result.tipoUtenza;
-            }
-        } else {
-            alert("Impossibile interpretare la risposta dell'AI.");
-        }
-
-    } catch (error) {
-        console.error("Errore analisi AI:", error);
-        alert("Errore durante l'analisi AI. Verifica la chiave API o il formato del file.");
-    }
-}
-
-// Funzione helper per convertire il file caricato dall'utente in stringa Base64
-function convertFileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-                const payload = {
-                    contents: [{
-                        role: "user",
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType: currentFileMime || 'image/jpeg', data: base64Clean } }
-                        ]
-                    }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: schema
-                    }
-                };
-
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-                const resp = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!resp.ok) throw new Error("Errore chiamata Gemini");
-
-                const resJson = await resp.json();
-                const jsonText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (jsonText) {
-                    const parsed = JSON.parse(jsonText);
-                    if (currentDocType === 'receipt') populateReceiptForm(parsed);
-                    else populateBillForm(parsed);
-
-                    document.getElementById('ai-status-tag').classList.remove('hidden');
-                    showToast('Documento analizzato con successo dall\'AI!');
+                if (currentDocType === 'receipt') {
+                    formRcpt.classList.remove('hidden');
+                    // Mock Dati estratti da Gemini
+                    document.getElementById('rcpt-store').value = "Conad Superstore";
+                    document.getElementById('rcpt-main-cat').value = "Alimentari";
+                    
+                    const tbody = document.getElementById('rcpt-items-tbody');
+                    tbody.innerHTML = '';
+                    addRcptItemRow('Pane Integrale 500g', 'Alimentari', 2.10, true);
+                    addRcptItemRow('Mela Golden 1kg', 'Alimentari', 1.85, true);
+                    addRcptItemRow('Detersivo Lavatrice', 'Casa', 5.90, false);
+                    calculateRcptTotal();
+                } else {
+                    formBill.classList.remove('hidden');
+                    // Mock Dati Bolletta
+                    document.getElementById('bill-provider').value = "A2A Energia";
+                    document.getElementById('bill-type').value = "Luce";
+                    document.getElementById('bill-amount').value = "112.40";
+                    document.getElementById('bill-period').value = "Bimestre Lug-Ago (420 kWh)";
+                    document.getElementById('bill-status').value = "DA_PAGARE";
                 }
-
-            } catch (err) {
-                console.error(err);
-                showToast('Errore durante l\'analisi AI. Verifica il file caricato.', 'error');
-            } finally {
-                document.getElementById('ai-loading-spinner').classList.add('hidden');
-                document.getElementById('btn-run-ai').disabled = false;
-            }
+            }, 1200);
         }
 
-        // Popola Form Scontrino
-        function populateReceiptForm(data) {
-            if (data.store) document.getElementById('rcpt-store').value = data.store;
-            if (data.date) document.getElementById('rcpt-date').value = data.date;
-            if (data.mainCategory) document.getElementById('rcpt-main-cat').value = data.mainCategory;
-
+        function addRcptItemRow(name = '', category = 'Alimentari', price = 0.00, addToPantry = true) {
             const tbody = document.getElementById('rcpt-items-tbody');
-            tbody.innerHTML = '';
-
-            if (data.items && data.items.length > 0) {
-                data.items.forEach(item => {
-                    addRcptItemRow(item.name, item.price, item.category, item.suggestExpiryDays || 0);
-                });
-            } else {
-                addRcptItemRow();
-            }
-            calcRcptTotal();
-        }
-
-        // Popola Form Bolletta
-        function populateBillForm(data) {
-            if (data.provider) document.getElementById('bill-provider').value = data.provider;
-            if (data.type) document.getElementById('bill-type').value = data.type;
-            if (data.amount) document.getElementById('bill-amount').value = data.amount;
-            if (data.dueDate) document.getElementById('bill-due-date').value = data.dueDate;
-            if (data.period) document.getElementById('bill-period').value = data.period;
-        }
-
-        // Gestione Tabella Scontrino
-        function addRcptItemRow(name = '', price = '', category = 'Alimentari', expiryDays = 0) {
-            const tbody = document.getElementById('rcpt-items-tbody');
-            const tr = document.createElement('tr');
-            
-            tr.innerHTML = `
-                <td class="p-1.5">
-                    <input type="text" value="${name}" placeholder="Nome prodotto" oninput="calcRcptTotal()" class="item-name w-full text-xs border rounded p-1">
-                </td>
-                <td class="p-1.5">
-                    <select class="item-cat w-full text-xs border rounded p-1 bg-white">
-                        <option value="Alimentari" ${category==='Alimentari'?'selected':''}>Alimentari</option>
-                        <option value="Casa" ${category==='Casa'?'selected':''}>Casa</option>
-                        <option value="Salute" ${category==='Salute'?'selected':''}>Salute</option>
-                        <option value="Svago" ${category==='Svago'?'selected':''}>Svago</option>
-                        <option value="Altro" ${category==='Altro'?'selected':''}>Altro</option>
+            const row = document.createElement('tr');
+            row.className = "border-b border-slate-100 hover:bg-slate-50/50";
+            row.innerHTML = `
+                <td class="p-2"><input type="text" value="${name}" placeholder="Nome Articolo" class="rcpt-item-name w-full text-xs border border-slate-200 rounded p-1"></td>
+                <td class="p-2">
+                    <select class="rcpt-item-cat w-full text-xs border border-slate-200 rounded p-1 bg-white">
+                        <option value="Alimentari" ${category === 'Alimentari' ? 'selected' : ''}>🛒 Alimentari</option>
+                        <option value="Casa" ${category === 'Casa' ? 'selected' : ''}>🏠 Casa</option>
+                        <option value="Abbigliamento" ${category === 'Abbigliamento' ? 'selected' : ''}>👕 Abbigliamento</option>
+                        <option value="Salute" ${category === 'Salute' ? 'selected' : ''}>💊 Salute</option>
+                        <option value="Svago" ${category === 'Svago' ? 'selected' : ''}>🎉 Svago</option>
+                        <option value="Trasporti" ${category === 'Trasporti' ? 'selected' : ''}>🚗 Trasporti</option>
+                        <option value="Altro" ${category === 'Altro' ? 'selected' : ''}>📦 Altro</option>
                     </select>
                 </td>
-                <td class="p-1.5">
-                    <input type="number" step="0.01" value="${price}" placeholder="0.00" oninput="calcRcptTotal()" class="item-price w-full text-xs border rounded p-1 text-right font-semibold">
+                <td class="p-2"><input type="number" step="0.01" value="${price}" onchange="calculateRcptTotal()" class="rcpt-item-price w-full text-xs border border-slate-200 rounded p-1 text-right font-semibold"></td>
+                <td class="p-2 text-center">
+                    <input type="checkbox" class="rcpt-item-pantry rounded text-indigo-600 focus:ring-indigo-500" ${addToPantry ? 'checked' : ''}>
                 </td>
-                <td class="p-1.5 text-center">
-                    <input type="checkbox" ${expiryDays > 0 ? 'checked' : ''} class="item-pantry-check w-4 h-4 text-emerald-600 rounded cursor-pointer" title="Aggiungi alla dispensa">
-                    <input type="hidden" class="item-expiry-days" value="${expiryDays}">
-                </td>
-                <td class="p-1.5 text-center">
-                    <button onclick="this.closest('tr').remove(); calcRcptTotal();" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                <td class="p-2 text-center">
+                    <button onclick="removeRcptItemRow(this)" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
                 </td>
             `;
-            tbody.appendChild(tr);
-            calcRcptTotal();
+            tbody.appendChild(row);
+            calculateRcptTotal();
         }
 
-        function calcRcptTotal() {
+        function removeRcptItemRow(btn) {
+            btn.closest('tr').remove();
+            calculateRcptTotal();
+        }
+
+        function calculateRcptTotal() {
             let total = 0;
-            document.querySelectorAll('.item-price').forEach(inp => {
-                total += parseFloat(inp.value) || 0;
+            document.querySelectorAll('.rcpt-item-price').forEach(input => {
+                total += parseFloat(input.value) || 0;
             });
             document.getElementById('rcpt-total-val').innerText = `€ ${total.toFixed(2)}`;
-            return total;
         }
 
-        // --- SALVATAGGIO SCONTRINO & DISPENSA ---
         function saveReceiptEntry() {
-            const store = document.getElementById('rcpt-store').value.trim();
+            const store = document.getElementById('rcpt-store').value || "Spesa Generica";
             const date = document.getElementById('rcpt-date').value;
             const member = document.getElementById('rcpt-member').value;
-            const mainCategory = document.getElementById('rcpt-main-cat').value;
-            const total = calcRcptTotal();
-
-            if (!store || !date) {
-                showToast('Compila il negozio e la data.', 'error');
-                return;
-            }
+            const category = document.getElementById('rcpt-main-cat').value;
 
             const items = [];
+            let total = 0;
+
             const rows = document.querySelectorAll('#rcpt-items-tbody tr');
-            
             rows.forEach(row => {
-                const name = row.querySelector('.item-name').value.trim();
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                const category = row.querySelector('.item-cat').value;
-                const addToPantry = row.querySelector('.item-pantry-check').checked;
-                const expiryDays = parseInt(row.querySelector('.item-expiry-days').value) || 7;
+                const name = row.querySelector('.rcpt-item-name').value;
+                const cat = row.querySelector('.rcpt-item-cat').value;
+                const price = parseFloat(row.querySelector('.rcpt-item-price').value) || 0;
+                const inPantry = row.querySelector('.rcpt-item-pantry').checked;
 
                 if (name) {
-                    items.push({ name, price, category });
+                    items.push({ name, category: cat, price });
+                    total += price;
 
-                    // Aggiungi in Dispensa se richiesto
-                    if (addToPantry) {
-                        const expiryDateObj = new Date(Date.now() + (expiryDays || 7) * 24 * 60 * 60 * 1000);
-                        pantry.unshift({
-                            id: Date.now().toString() + Math.random(),
+                    // Se selezionato, aggiunge in dispensa automaticamente
+                    if (inPantry) {
+                        const in7Days = new Date();
+                        in7Days.setDate(in7Days.getDate() + 7);
+                        appData.pantry.push({
+                            id: 'p_' + Date.now() + Math.random(),
                             name: name,
-                            category: category,
-                            purchaseDate: date,
-                            expiryDate: expiryDateObj.toISOString().slice(0, 10),
-                            quantity: 1
+                            category: cat,
+                            quantity: 1,
+                            expiryDate: in7Days.toISOString().split('T')[0]
                         });
                     }
                 }
             });
 
-            if (items.length === 0) {
-                showToast('Inserisci almeno un articolo.', 'error');
-                return;
-            }
-
-            const receiptObj = {
-                id: Date.now().toString(),
-                store,
+            appData.receipts.unshift({
+                id: 'r_' + Date.now(),
                 date,
+                store,
                 member,
-                mainCategory,
+                category,
                 total,
                 items
-            };
+            });
 
-            receipts.unshift(receiptObj);
-            localStorage.setItem('fb_receipts', JSON.stringify(receipts));
-            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
-
-            showToast('Scontrino e prodotti in dispensa salvati!');
+            saveState();
+            alert("Spesa salvata con successo!");
             resetScanner();
-            renderDashboard();
-            renderPantry();
-            updateGlobalAlerts();
+            switchTab('dashboard');
         }
 
-        // --- SALVATAGGIO BOLLETTA ---
         function saveBillEntry() {
-            const provider = document.getElementById('bill-provider').value.trim();
+            const provider = document.getElementById('bill-provider').value || "Fornitore Sconosciuto";
             const type = document.getElementById('bill-type').value;
             const amount = parseFloat(document.getElementById('bill-amount').value) || 0;
             const dueDate = document.getElementById('bill-due-date').value;
-            const period = document.getElementById('bill-period').value.trim();
+            const period = document.getElementById('bill-period').value;
             const status = document.getElementById('bill-status').value;
 
-            if (!provider || !dueDate || amount <= 0) {
-                showToast('Compila tutti i campi della bolletta.', 'error');
-                return;
-            }
-
-            const billObj = {
-                id: Date.now().toString(),
+            appData.bills.unshift({
+                id: 'b_' + Date.now(),
                 provider,
                 type,
                 amount,
                 dueDate,
                 period,
                 status
-            };
+            });
 
-            bills.unshift(billObj);
-            localStorage.setItem('fb_bills', JSON.stringify(bills));
-
-            showToast('Bolletta salvata nello scadenziario!');
+            saveState();
+            alert("Bolletta aggiunta allo scadenziario!");
             resetScanner();
-            renderDashboard();
-            renderBillsArchive();
-            updateGlobalAlerts();
+            switchTab('archive');
+            switchArchiveSubTab('bills');
         }
 
-        // --- DASHBOARD & RENDERING GRAFICI ---
-        function renderDashboard() {
-            const currentMonth = new Date().toISOString().slice(0, 7);
-
-            // KPI Spesa Mese
-            const monthReceipts = receipts.filter(r => r.date.startsWith(currentMonth));
-            const totalMonth = monthReceipts.reduce((sum, r) => sum + r.total, 0);
-            document.getElementById('kpi-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
-
-            // KPI Bollette Mese
-            const totalBills = bills.filter(b => b.status === 'DA_PAGARE').reduce((sum, b) => sum + b.amount, 0);
-            document.getElementById('kpi-bills-total').innerText = `€ ${totalBills.toFixed(2)}`;
-
-            // KPI Buoni
-            const activeCoupons = coupons.filter(c => c.status === 'ATTIVO').length;
-            document.getElementById('kpi-coupons-active').innerText = `${activeCoupons} attivi`;
-
-            // KPI Dispensa
-            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            const expiringPantryCount = pantry.filter(p => p.expiryDate && p.expiryDate <= in7Days).length;
-            document.getElementById('kpi-pantry-expiring').innerText = `${expiringPantryCount} prodotti`;
-
-            // Chart Categorie
-            const catTotals = {};
-            receipts.forEach(r => {
-                catTotals[r.mainCategory] = (catTotals[r.mainCategory] || 0) + r.total;
-            });
-
-            if (chartCatInstance) chartCatInstance.destroy();
-            const ctxCat = document.getElementById('chart-categories').getContext('2d');
-            chartCatInstance = new Chart(ctxCat, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(catTotals).length ? Object.keys(catTotals) : ['Nessun dato'],
-                    datasets: [{
-                        data: Object.values(catTotals).length ? Object.values(catTotals) : [1],
-                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#f43f5e', '#3b82f6', '#64748b']
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-
-            // Chart Componenti
-            const memTotals = { 'Mamma': 0, 'Papà': 0, 'Figlio/a': 0, 'Famiglia': 0 };
-            receipts.forEach(r => { memTotals[r.member] = (memTotals[r.member] || 0) + r.total; });
-
-            if (chartMemInstance) chartMemInstance.destroy();
-            const ctxMem = document.getElementById('chart-members').getContext('2d');
-            chartMemInstance = new Chart(ctxMem, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(memTotals),
-                    datasets: [{
-                        label: 'Totale Speso (€)',
-                        data: Object.values(memTotals),
-                        backgroundColor: '#4f46e5',
-                        borderRadius: 6
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-
-            // Analisi Stima Consumi Prodotti Più Acquistati
-            const productCounts = {};
-            receipts.forEach(r => {
-                r.items.forEach(i => {
-                    const cleanName = i.name.toLowerCase().trim();
-                    if (!productCounts[cleanName]) productCounts[cleanName] = { name: i.name, count: 0, totalSpend: 0 };
-                    productCounts[cleanName].count += 1;
-                    productCounts[cleanName].totalSpend += i.price;
-                });
-            });
-
-            const topProducts = Object.values(productCounts).sort((a, b) => b.count - a.count).slice(0, 6);
-            const container = document.getElementById('top-products-list');
-            container.innerHTML = '';
-
-            if (topProducts.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 col-span-3">Nessun dato sui prodotti ancora disponibile.</p>';
-            } else {
-                topProducts.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs';
-                    card.innerHTML = `
-                        <div>
-                            <p class="font-bold text-slate-800 capitalize">${p.name}</p>
-                            <p class="text-[10px] text-slate-500">Acquistato ${p.count} volte</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="font-bold text-indigo-600">€ ${p.totalSpend.toFixed(2)}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            }
-        }
-
-        // --- ARCHIVIO & SCADENZIARIO BOLLETTE ---
-        function switchArchiveSubTab(tab) {
-            if (tab === 'receipts') {
-                document.getElementById('subtab-receipts').classList.remove('hidden');
-                document.getElementById('subtab-bills').classList.add('hidden');
-                document.getElementById('subtab-btn-receipts').className = "pb-3 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2";
-                document.getElementById('subtab-btn-bills').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            } else {
-                document.getElementById('subtab-bills').classList.remove('hidden');
-                document.getElementById('subtab-receipts').classList.add('hidden');
-                document.getElementById('subtab-btn-bills').className = "pb-3 text-sm font-bold border-b-2 border-amber-600 text-amber-600 flex items-center gap-2";
-                document.getElementById('subtab-btn-receipts').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
-            }
-        }
-
+        // --- RENDER TABELLE ARCHIVIO ---
         function renderReceiptsArchive() {
-            const tbody = document.getElementById('arch-receipts-tbody');
-            tbody.innerHTML = '';
-
             const search = document.getElementById('arch-search').value.toLowerCase();
             const category = document.getElementById('arch-category').value;
             const member = document.getElementById('arch-member').value;
 
-            const filtered = receipts.filter(r => {
-                const matchSearch = r.store.toLowerCase().includes(search) || r.items.some(i => i.name.toLowerCase().includes(search));
-                const matchCat = category === 'ALL' || r.mainCategory === category;
-                const matchMem = member === 'ALL' || r.member === member;
-                return matchSearch && matchCat && matchMem;
+            const filtered = appData.receipts.filter(r => {
+                const matchesSearch = r.store.toLowerCase().includes(search) || (r.items && r.items.some(i => i.name.toLowerCase().includes(search)));
+                const matchesCat = category === 'ALL' || r.category === category;
+                const matchesMember = member === 'ALL' || r.member === member;
+                return matchesSearch && matchesCat && matchesMember;
             });
 
+            const tbody = document.getElementById('receipts-archive-tbody');
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Nessuno scontrino trovato.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Nessuna spesa trovata.</td></tr>`;
                 return;
             }
 
-            filtered.forEach(r => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50";
-                tr.innerHTML = `
-                    <td class="p-3 font-medium">${r.date}</td>
-                    <td class="p-3 font-bold">${r.store}</td>
-                    <td class="p-3"><span class="bg-slate-100 px-2 py-0.5 rounded-full">${r.member}</span></td>
-                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">${r.mainCategory}</span></td>
-                    <td class="p-3 text-slate-500 max-w-xs truncate">${r.items.map(i=>i.name).join(', ')}</td>
-                    <td class="p-3 text-right font-bold text-indigo-600">€ ${r.total.toFixed(2)}</td>
+            tbody.innerHTML = filtered.map(r => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="p-3 font-medium text-slate-700">${r.date}</td>
+                    <td class="p-3 font-semibold text-slate-800">${r.store}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 font-semibold">${r.member}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 font-semibold">${r.category}</span></td>
+                    <td class="p-3 text-slate-500">${(r.items || []).map(i => i.name).join(', ')}</td>
+                    <td class="p-3 text-right font-bold text-indigo-600">€ ${parseFloat(r.total).toFixed(2)}</td>
                     <td class="p-3 text-center">
-                        <button onclick="openReceiptModal('${r.id}')" class="text-indigo-600 hover:underline font-semibold mr-2">Vedi</button>
-                        <button onclick="deleteReceipt('${r.id}')" class="text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="deleteReceipt('${r.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
                     </td>
-                `;
-                tbody.appendChild(tr);
-            });
+                </tr>
+            `).join('');
         }
 
         function renderBillsArchive() {
-            const tbody = document.getElementById('arch-bills-tbody');
-            tbody.innerHTML = '';
-
-            if (bills.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Nessuna bolletta salvata nello scadenziario.</td></tr>';
+            const tbody = document.getElementById('bills-archive-tbody');
+            if (appData.bills.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Nessuna bolletta registrata.</td></tr>`;
                 return;
             }
 
-            bills.forEach(b => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50";
-                const isPaid = b.status === 'PAGATA';
-
-                tr.innerHTML = `
-                    <td class="p-3 font-bold">${b.provider}</td>
-                    <td class="p-3"><span class="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-semibold">${b.type}</span></td>
-                    <td class="p-3 font-semibold ${!isPaid ? 'text-red-600' : 'text-slate-600'}">${b.dueDate}</td>
-                    <td class="p-3 text-slate-500 text-[11px]">${b.period || '-'}</td>
-                    <td class="p-3">
-                        <button onclick="toggleBillStatus('${b.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                            ${isPaid ? '✅ PAGATA' : '⏳ DA PAGARE'}
+            tbody.innerHTML = appData.bills.map(b => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="p-3 font-semibold text-slate-800">${b.provider}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-700 font-semibold">${b.type}</span></td>
+                    <td class="p-3 text-slate-500">${b.period || '-'}</td>
+                    <td class="p-3 font-medium text-slate-700">${b.dueDate}</td>
+                    <td class="p-3 text-right font-bold text-slate-800">€ ${parseFloat(b.amount).toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="toggleBillStatus('${b.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${b.status === 'PAGATA' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${b.status === 'PAGATA' ? '✅ Pagata' : '⏳ Da Pagare'}
                         </button>
                     </td>
-                    <td class="p-3 text-right font-bold text-slate-800">€ ${b.amount.toFixed(2)}</td>
                     <td class="p-3 text-center">
-                        <button onclick="deleteBill('${b.id}')" class="text-red-500"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="deleteBill('${b.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
                     </td>
-                `;
-                tbody.appendChild(tr);
-            });
+                </tr>
+            `).join('');
         }
 
         function toggleBillStatus(id) {
-            const bill = bills.find(b => b.id === id);
+            const bill = appData.bills.find(b => b.id === id);
             if (bill) {
                 bill.status = bill.status === 'PAGATA' ? 'DA_PAGARE' : 'PAGATA';
-                localStorage.setItem('fb_bills', JSON.stringify(bills));
-                renderBillsArchive();
-                renderDashboard();
-                updateGlobalAlerts();
+                saveState();
             }
         }
 
         function deleteReceipt(id) {
-            if(confirm('Eliminare questo scontrino dall\'archivio?')) {
-                receipts = receipts.filter(r => r.id !== id);
-                localStorage.setItem('fb_receipts', JSON.stringify(receipts));
-                renderReceiptsArchive();
-                renderDashboard();
+            if (confirm("Eliminare questa spesa?")) {
+                appData.receipts = appData.receipts.filter(r => r.id !== id);
+                saveState();
             }
         }
 
         function deleteBill(id) {
-            if(confirm('Eliminare questa bolletta?')) {
-                bills = bills.filter(b => b.id !== id);
-                localStorage.setItem('fb_bills', JSON.stringify(bills));
-                renderBillsArchive();
-                renderDashboard();
-                updateGlobalAlerts();
+            if (confirm("Eliminare questa bolletta?")) {
+                appData.bills = appData.bills.filter(b => b.id !== id);
+                saveState();
             }
         }
 
-        // --- BUONI SCONTO & COUPON WALLET ---
-        function saveCoupon() {
-            const store = document.getElementById('cpn-store').value.trim();
-            const discount = parseFloat(document.getElementById('cpn-discount').value) || 0;
-            const minSpend = parseFloat(document.getElementById('cpn-min-spend').value) || 0;
-            const expiryDate = document.getElementById('cpn-expiry').value;
-            const notes = document.getElementById('cpn-notes').value.trim();
-
-            if (!store || discount <= 0 || !expiryDate) {
-                showToast('Inserisci il supermercato, valore sconto e scadenza.', 'error');
-                return;
-            }
-
-            const couponObj = {
-                id: Date.now().toString(),
-                store,
-                discount,
-                minSpend,
-                expiryDate,
-                notes,
-                status: 'ATTIVO'
-            };
-
-            coupons.unshift(couponObj);
-            localStorage.setItem('fb_coupons', JSON.stringify(coupons));
-
-            showToast('Buono salvato nel wallet!');
-            // Reset
-            document.getElementById('cpn-store').value = '';
-            document.getElementById('cpn-discount').value = '';
-            document.getElementById('cpn-min-spend').value = '';
-            document.getElementById('cpn-notes').value = '';
-
-            renderCoupons();
-            renderDashboard();
-            updateGlobalAlerts();
-        }
-
+        // --- BUONI SCONTO & DISPENSA ---
         function renderCoupons() {
             const grid = document.getElementById('coupons-grid');
-            grid.innerHTML = '';
-
-            const activeList = coupons.filter(c => c.status === 'ATTIVO');
-            document.getElementById('active-coupons-count').innerText = `${activeList.length} Attivi`;
-
-            if (activeList.length === 0) {
-                grid.innerHTML = '<p class="text-xs text-slate-400 col-span-2 py-6 text-center">Nessun buono sconto salvato. Aggiungine uno dal modulo a sinistra!</p>';
+            if (appData.coupons.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-3 py-6 text-center">Nessun buono sconto inserito.</p>`;
                 return;
             }
 
-            const today = new Date().toISOString().slice(0, 10);
-
-            activeList.forEach(c => {
-                const isNearExpiry = c.expiryDate <= new Date(Date.now() + 5*24*60*60*1000).toISOString().slice(0,10);
-                const card = document.createElement('div');
-                card.className = `p-4 rounded-2xl border ${isNearExpiry ? 'bg-amber-50/60 border-amber-300' : 'bg-slate-50 border-slate-200'} shadow-sm space-y-2 relative`;
-
-                card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isNearExpiry ? 'bg-amber-200 text-amber-900' : 'bg-indigo-100 text-indigo-700'}">
-                                ${c.store}
-                            </span>
-                            <h4 class="text-lg font-extrabold text-slate-800 mt-1">Sconto € ${c.discount.toFixed(2)}</h4>
+            grid.innerHTML = appData.coupons.map(c => `
+                <div class="bg-white p-5 rounded-2xl border ${c.used ? 'border-slate-200 opacity-60' : 'border-amber-200'} shadow-sm relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">${c.store}</span>
+                            <span class="text-[10px] text-slate-400">Scade: ${c.expiryDate}</span>
                         </div>
-                        <button onclick="useCoupon('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-sm">
-                            Usa Ora
-                        </button>
+                        <h4 class="font-bold text-slate-800 text-base mb-1">${c.discount}</h4>
+                        <p class="text-xs font-mono bg-slate-100 p-2 rounded-lg text-slate-600 text-center tracking-wider font-semibold border border-slate-200 my-3">${c.code}</p>
                     </div>
-
-                    ${c.minSpend > 0 ? `<p class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-cart-shopping text-indigo-500 mr-1"></i> Spesa minima: € ${c.minSpend.toFixed(2)}</p>` : ''}
-                    <p class="text-xs text-slate-600"><i class="fa-solid fa-calendar-day text-amber-600 mr-1"></i> Scadenza: <strong>${c.expiryDate}</strong></p>
-                    ${c.notes ? `<p class="text-[11px] text-slate-500 bg-white p-2 rounded-lg border border-slate-100">${c.notes}</p>` : ''}
-
-                    <button onclick="deleteCoupon('${c.id}')" class="absolute bottom-2 right-2 text-slate-400 hover:text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
-                `;
-                grid.appendChild(card);
-            });
+                    <button onclick="toggleCouponUsed('${c.id}')" class="w-full py-2 rounded-xl text-xs font-semibold ${c.used ? 'bg-slate-200 text-slate-600' : 'bg-amber-500 hover:bg-amber-600 text-white'} transition-all shadow-sm">
+                        ${c.used ? 'Segna come Attivo' : 'Segna come Utilizzato'}
+                    </button>
+                </div>
+            `).join('');
         }
 
-        function useCoupon(id) {
-            const coupon = coupons.find(c => c.id === id);
+        function toggleCouponUsed(id) {
+            const coupon = appData.coupons.find(c => c.id === id);
             if (coupon) {
-                coupon.status = 'UTILIZZATO';
-                localStorage.setItem('fb_coupons', JSON.stringify(coupons));
-                showToast('Buono contrassegnato come utilizzato!');
-                renderCoupons();
-                renderDashboard();
-                updateGlobalAlerts();
+                coupon.used = !coupon.used;
+                saveState();
             }
         }
 
-        function deleteCoupon(id) {
-            coupons = coupons.filter(c => c.id !== id);
-            localStorage.setItem('fb_coupons', JSON.stringify(coupons));
-            renderCoupons();
-            renderDashboard();
-            updateGlobalAlerts();
-        }
+        function showAddCouponModal() {
+            const store = prompt("Negozio / Esercente:");
+            if (!store) return;
+            const discount = prompt("Sconto / Descrizione (es: 10€ su 50€):");
+            const code = prompt("Codice Coupon / Barcode:");
+            const expiryDate = prompt("Data Scadenza (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
 
-        // --- DISPENSA & SCORTE ---
-        function filterPantry(type) {
-            activePantryFilter = type;
-            document.getElementById('pantry-filter-all').className = type === 'ALL' ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white" : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200";
-            document.getElementById('pantry-filter-expiring').className = type === 'EXPIRING' ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white" : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200";
-            renderPantry();
+            appData.coupons.push({
+                id: 'c_' + Date.now(),
+                store,
+                discount,
+                code: code || 'NESSUN CODICE',
+                expiryDate,
+                used: false
+            });
+            saveState();
         }
 
         function renderPantry() {
             const tbody = document.getElementById('pantry-tbody');
-            tbody.innerHTML = '';
-
-            const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-            const filtered = pantry.filter(p => {
-                if (activePantryFilter === 'EXPIRING') return p.expiryDate && p.expiryDate <= in7Days;
-                return true;
-            });
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400">Nessun prodotto presente in dispensa.</td></tr>';
+            if (appData.pantry.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nessun prodotto in dispensa.</td></tr>`;
                 return;
             }
 
-            filtered.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 text-xs";
-                const isExpiring = p.expiryDate && p.expiryDate <= in7Days;
+            const today = new Date();
 
-                tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-800 capitalize">${p.name}</td>
-                    <td class="p-3"><span class="bg-slate-100 px-2 py-0.5 rounded-full">${p.category}</span></td>
-                    <td class="p-3 text-slate-500">${p.purchaseDate || '-'}</td>
-                    <td class="p-3 font-semibold ${isExpiring ? 'text-red-600 font-bold bg-red-50 p-1 rounded' : 'text-slate-700'}">
-                        ${p.expiryDate ? (isExpiring ? `⚠️ ${p.expiryDate}` : p.expiryDate) : 'Senza data'}
-                    </td>
-                    <td class="p-3 font-semibold text-slate-700">${p.quantity || 1} pz</td>
-                    <td class="p-3 text-center">
-                        <button onclick="consumePantryItem('${p.id}')" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-bold px-2.5 py-1 rounded-lg text-[10px]">Consumato</button>
-                    </td>
+            tbody.innerHTML = appData.pantry.map(p => {
+                const exp = new Date(p.expiryDate);
+                const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+                let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-semibold">OK (${diffDays} gg)</span>`;
+
+                if (diffDays <= 0) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-800 font-bold">Scaduto!</span>`;
+                } else if (diffDays <= 3) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold">In Scadenza (${diffDays} gg)</span>`;
+                }
+
+                return `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                        <td class="p-3 text-slate-500">${p.category}</td>
+                        <td class="p-3 text-center font-bold text-slate-700">${p.quantity}</td>
+                        <td class="p-3 font-medium text-slate-700">${p.expiryDate}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deletePantryItem('${p.id}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
-            });
+            }).join('');
         }
 
-        function openManualPantryModal() {
-            document.getElementById('pantry-manual-expiry').valueAsDate = new Date(Date.now() + 7*24*60*60*1000);
-            document.getElementById('pantry-manual-modal').classList.remove('hidden');
-        }
+        function showAddPantryModal() {
+            const name = prompt("Nome Prodotto:");
+            if (!name) return;
+            const category = prompt("Categoria (es. Freschi, Conserve, Bevande):", "Generico");
+            const quantity = parseInt(prompt("Quantità:", "1")) || 1;
+            const expiryDate = prompt("Data Scadenza (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
 
-        function closePantryModal() {
-            document.getElementById('pantry-manual-modal').classList.add('hidden');
-        }
-
-        function saveManualPantryItem() {
-            const name = document.getElementById('pantry-manual-name').value.trim();
-            const category = document.getElementById('pantry-manual-cat').value;
-            const expiryDate = document.getElementById('pantry-manual-expiry').value;
-            const quantity = parseInt(document.getElementById('pantry-manual-qty').value) || 1;
-
-            if (!name) {
-                showToast('Inserisci il nome del prodotto.', 'error');
-                return;
-            }
-
-            pantry.unshift({
-                id: Date.now().toString(),
+            appData.pantry.push({
+                id: 'p_' + Date.now(),
                 name,
                 category,
-                purchaseDate: new Date().toISOString().slice(0, 10),
-                expiryDate,
-                quantity
+                quantity,
+                expiryDate
             });
-
-            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
-            showToast('Prodotto aggiunto alla dispensa!');
-            closePantryModal();
-            renderPantry();
-            renderDashboard();
-            updateGlobalAlerts();
+            saveState();
         }
 
-        function consumePantryItem(id) {
-            pantry = pantry.filter(p => p.id !== id);
-            localStorage.setItem('fb_pantry', JSON.stringify(pantry));
-            showToast('Prodotto rimosso dalla dispensa.');
-            renderPantry();
-            renderDashboard();
-            updateGlobalAlerts();
+        function deletePantryItem(id) {
+            appData.pantry = appData.pantry.filter(p => p.id !== id);
+            saveState();
         }
 
-        // --- UTILITY MODALI SCONTRINO & TOAST ---
-        function openReceiptModal(id) {
-            const r = receipts.find(x => x.id === id);
-            if (!r) return;
+        // --- SISTEMA ALERT GLOBALI ---
+        function updateGlobalAlerts() {
+            const today = new Date();
+            const in7Days = new Date();
+            in7Days.setDate(today.getDate() + 7);
 
-            document.getElementById('modal-rcpt-store').innerText = r.store;
-            document.getElementById('modal-rcpt-date').innerText = r.date;
-            document.getElementById('modal-rcpt-member').innerText = r.member;
-            document.getElementById('modal-rcpt-cat').innerText = r.mainCategory;
-            document.getElementById('modal-rcpt-total').innerText = `€ ${r.total.toFixed(2)}`;
+            const expiringCoupons = appData.coupons.filter(c => !c.used && new Date(c.expiryDate) <= in7Days);
+            const expiringPantry = appData.pantry.filter(p => new Date(p.expiryDate) <= in7Days);
 
-            const tbody = document.getElementById('modal-rcpt-items-list');
-            tbody.innerHTML = '';
-            r.items.forEach(i => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="p-2 font-medium capitalize">${i.name}</td>
-                    <td class="p-2 text-slate-500">${i.category}</td>
-                    <td class="p-2 text-right font-bold">€ ${i.price.toFixed(2)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            const couponBadge = document.getElementById('coupon-alert-badge');
+            const pantryBadge = document.getElementById('pantry-alert-badge');
+            const globalBanner = document.getElementById('global-alert-banner');
 
-            document.getElementById('receipt-detail-modal').classList.remove('hidden');
-        }
-
-        function closeReceiptModal() {
-            document.getElementById('receipt-detail-modal').classList.add('hidden');
-        }
-
-        function exportCSV() {
-            if (receipts.length === 0) {
-                showToast('Nessuna spesa da esportare.', 'error');
-                return;
+            if (expiringCoupons.length > 0) {
+                couponBadge.classList.remove('hidden');
+            } else {
+                couponBadge.classList.add('hidden');
             }
-            let csv = "ID,Data,Esercente,Componente,Categoria,Articoli,Totale\n";
-            receipts.forEach(r => {
-                const itemsStr = r.items.map(i => i.name).join(' | ').replace(/"/g, '""');
-                csv += `"${r.id}","${r.date}","${r.store}","${r.member}","${r.mainCategory}","${itemsStr}","${r.total}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `spese_famiglia_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
+
+            if (expiringPantry.length > 0) {
+                pantryBadge.classList.remove('hidden');
+            } else {
+                pantryBadge.classList.add('hidden');
+            }
+
+            if (expiringCoupons.length > 0 || expiringPantry.length > 0) {
+                globalBanner.classList.remove('hidden');
+                document.getElementById('banner-desc').innerText = `Hai ${expiringCoupons.length} buoni in scadenza e ${expiringPantry.length} prodotti da consumare entro 7 giorni!`;
+            } else {
+                globalBanner.classList.add('hidden');
+            }
         }
 
-        function showToast(msg, type = 'success') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toast-icon');
-            const text = document.getElementById('toast-message');
+        // --- ESPORTAZIONE DATA CSV ---
+        function exportCSV() {
+            let csv = "Data,Esercente,Componente,Categoria,Totale\n";
+            appData.receipts.forEach(r => {
+                csv += `"${r.date}","${r.store}","${r.member}","${r.category}",${r.total}\n`;
+            });
 
-            text.innerText = msg;
-            icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400 text-base' : 'fa-circle-check text-emerald-400 text-base';
-
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3500);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `spese_family_budget_${new Date().toISOString().split('T')[0]}.csv`);
+            a.click();
         }
     </script>
 </body>
