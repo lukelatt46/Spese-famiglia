@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FamilyBudget - AI Scanner Documenti</title>
+  <title>FamilyBudget - Gestione Spese e Documenti</title>
   
   <!-- Importazione PDF.js per rendering delle anteprime -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -29,13 +29,53 @@
     body {
       background-color: var(--bg-color);
       margin: 0;
-      padding: 24px;
+      padding: 0;
       color: #333;
     }
 
-    .container {
+    /* Navbar / Header App */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    nav {
+      display: flex;
+      gap: 20px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    nav a.active {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    /* Main Container */
+    .main-wrapper {
       max-width: 1200px;
-      margin: 0 auto;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .container {
       display: grid;
       grid-template-columns: 1fr 1.3fr;
       gap: 24px;
@@ -84,7 +124,7 @@
       color: var(--accent-gold);
     }
 
-    /* Stili Dropzone con feedback per Drag & Drop */
+    /* Dropzone e Viewer */
     .dropzone {
       border: 2px dashed #cbd5e1;
       border-radius: 12px;
@@ -226,102 +266,167 @@
 </head>
 <body>
 
-  <div class="container">
-    
-    <!-- Riquadro Sinistro -->
-    <div class="card">
-      <h2>✨ Scanner AI Documenti</h2>
-      <p class="subtitle">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
+  <!-- Navbar Principale -->
+  <header>
+    <div class="brand">🏠 FamilyBudget</div>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#" class="active">Scanner AI</a>
+      <a href="#">Scadenziario</a>
+      <a href="#">Statistiche</a>
+    </nav>
+  </header>
 
-      <div class="tab-group">
-        <button class="tab-btn" onclick="setDocType('scontrino')">🧾 Scontrino Spesa</button>
-        <button class="tab-btn active" onclick="setDocType('bolletta')">📑 Bolletta Utenza</button>
+  <div class="main-wrapper">
+    <div class="container">
+      
+      <!-- Riquadro Sinistro: Caricamento e Preview -->
+      <div class="card">
+        <h2>✨ Scanner AI Documenti</h2>
+        <p class="subtitle">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
+
+        <div class="tab-group">
+          <button id="tabScontrino" class="tab-btn" onclick="switchDocType('scontrino')">🧾 Scontrino Spesa</button>
+          <button id="tabBolletta" class="tab-btn active" onclick="switchDocType('bolletta')">📑 Bolletta Utenza</button>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept="application/pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
+          
+          <div id="pdfPreviewContainer" style="display:none;">
+            <canvas id="pdfCanvas"></canvas>
+            <button type="button" onclick="resetFile(event)" class="btn-delete" title="Rimuovi file">🗑</button>
+          </div>
+
+          <div id="uploadPlaceholder">
+            <p>📄 <strong>Trascina qui il documento</strong> (PDF/Immagine)<br><small style="color:#64748b;">oppure clicca per selezionarlo dal computer</small></p>
+          </div>
+        </div>
+
+        <button type="button" id="btnAnalyze" class="btn-ai" onclick="analyzeWithGemini()" disabled>
+          ✨ Analizza con Gemini AI
+        </button>
       </div>
 
-      <!-- Area Dropzone configurata per Drag & Drop -->
-      <div class="dropzone" id="dropzone">
-        <input type="file" id="fileInput" accept="application/pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
+      <!-- Riquadro Destro: Form Dinamico (Bolletta vs Scontrino) -->
+      <div class="card">
         
-        <div id="pdfPreviewContainer" style="display:none;">
-          <canvas id="pdfCanvas"></canvas>
-          <button type="button" onclick="resetFile(event)" class="btn-delete" title="Rimuovi file">🗑</button>
+        <!-- Form Bolletta Utenza -->
+        <div id="sectionBolletta">
+          <div style="display:flex; align-items:center;">
+            <h2>Verifica Dati Bolletta</h2>
+            <span class="badge-status" id="statusBadgeBolletta" style="display:none;">Elaborato</span>
+          </div>
+          <p class="subtitle">Controlla o completa le informazioni estratte prima del salvataggio.</p>
+
+          <form id="billForm" class="form-grid">
+            <div class="form-group">
+              <label for="fornitore">Ente / Fornitore</label>
+              <input type="text" id="fornitore" placeholder="es. Argos">
+            </div>
+
+            <div class="form-group">
+              <label for="tipoUtenza">Tipo Utenza</label>
+              <select id="tipoUtenza">
+                <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
+                <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
+                <option value="Acqua">💧 Acqua</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="importo">Importo Bolletta (€)</label>
+              <input type="text" id="importo" placeholder="0,00">
+            </div>
+
+            <div class="form-group">
+              <label for="scadenza">Data Scadenza Pagamento</label>
+              <input type="date" id="scadenza">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="periodo">Periodo di Riferimento / Note</label>
+              <input type="text" id="periodo" placeholder="es. Mese di Marzo 2026">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="statoPagamento">Stato Pagamento</label>
+              <select id="statoPagamento">
+                <option value="Da Pagare">⏳ Da Pagare</option>
+                <option value="Pagato">✅ Pagato</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn-save" onclick="saveData('bolletta')">💾 Salva Bolletta nello Scadenziario</button>
+          </form>
         </div>
 
-        <div id="uploadPlaceholder">
-          <p>📄 <strong>Trascina qui la tua bolletta</strong> (PDF/Immagine)<br><small style="color:#64748b;">oppure clicca per selezionarla</small></p>
+        <!-- Form Scontrino Spesa -->
+        <div id="sectionScontrino" style="display:none;">
+          <div style="display:flex; align-items:center;">
+            <h2>Verifica Dati Scontrino</h2>
+            <span class="badge-status" id="statusBadgeScontrino" style="display:none;">Elaborato</span>
+          </div>
+          <p class="subtitle">Controlla la spesa estratta prima di aggiungerla al budget.</p>
+
+          <form id="receiptForm" class="form-grid">
+            <div class="form-group">
+              <label for="supermercato">Supermercato / Negozio</label>
+              <input type="text" id="supermercato" placeholder="es. Esselunga, Conad">
+            </div>
+
+            <div class="form-group">
+              <label for="categoriaSpesa">Categoria</label>
+              <select id="categoriaSpesa">
+                <option value="Alimentari">🛒 Alimentari / Spesa</option>
+                <option value="Casa">🏠 Prodotti Casa</option>
+                <option value="Abbigliamento">👕 Abbigliamento</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="importoScontrino">Totale (€)</label>
+              <input type="text" id="importoScontrino" placeholder="0,00">
+            </div>
+
+            <div class="form-group">
+              <label for="dataScontrino">Data Spesa</label>
+              <input type="date" id="dataScontrino">
+            </div>
+
+            <button type="button" class="btn-save" onclick="saveData('scontrino')">💾 Salva Spesa in Bilancio</button>
+          </form>
         </div>
+
       </div>
 
-      <button type="button" id="btnAnalyze" class="btn-ai" onclick="analyzeWithGemini()" disabled>
-        ✨ Analizza con Gemini AI
-      </button>
     </div>
-
-    <!-- Riquadro Destro -->
-    <div class="card">
-      <div style="display:flex; align-items:center;">
-        <h2>Verifica Dati Bolletta</h2>
-        <span class="badge-status" id="statusBadge" style="display:none;">Elaborato</span>
-      </div>
-      <p class="subtitle">Controlla o completa le informazioni estratte prima del salvataggio.</p>
-
-      <form id="billForm" class="form-grid">
-        <div class="form-group">
-          <label for="fornitore">Ente / Fornitore</label>
-          <input type="text" id="fornitore" placeholder="es. Argos">
-        </div>
-
-        <div class="form-group">
-          <label for="tipoUtenza">Tipo Utenza</label>
-          <select id="tipoUtenza">
-            <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
-            <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
-            <option value="Acqua">💧 Acqua</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="importo">Importo Bolletta (€)</label>
-          <input type="text" id="importo" placeholder="0,00">
-        </div>
-
-        <div class="form-group">
-          <label for="scadenza">Data Scadenza Pagamento</label>
-          <input type="date" id="scadenza">
-        </div>
-
-        <div class="form-group full-width">
-          <label for="periodo">Periodo di Riferimento / Note</label>
-          <input type="text" id="periodo" placeholder="es. Mese di Marzo 2026">
-        </div>
-
-        <div class="form-group full-width">
-          <label for="statoPagamento">Stato Pagamento</label>
-          <select id="statoPagamento">
-            <option value="Da Pagare">⏳ Da Pagare</option>
-            <option value="Pagato">✅ Pagato</option>
-          </select>
-        </div>
-
-        <button type="button" class="btn-save" onclick="saveBill()">💾 Salva Bolletta nello Scadenziario</button>
-      </form>
-    </div>
-
   </div>
 
   <script>
+    let currentDocType = 'bolletta';
     let currentFile = null;
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
 
-    function setDocType(type) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+    function switchDocType(type) {
+      currentDocType = type;
+      if (type === 'bolletta') {
+        document.getElementById('tabBolletta').classList.add('active');
+        document.getElementById('tabScontrino').classList.remove('active');
+        document.getElementById('sectionBolletta').style.display = 'block';
+        document.getElementById('sectionScontrino').style.display = 'none';
+      } else {
+        document.getElementById('tabScontrino').classList.add('active');
+        document.getElementById('tabBolletta').classList.remove('active');
+        document.getElementById('sectionScontrino').style.display = 'block';
+        document.getElementById('sectionBolletta').style.display = 'none';
+      }
+      resetFile(null);
     }
 
-    /* --- GESTIONE DRAG & DROP E CLIC --- */
+    /* DRAG & DROP EVENTI */
     dropzone.addEventListener('click', (e) => {
-      // Evita di aprire il selettore se si clicca sul cestino
       if (e.target.closest('.btn-delete')) return;
       if (!currentFile) fileInput.click();
     });
@@ -338,25 +443,17 @@
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('dragover');
-      
       const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        processFile(files[0]);
-      }
+      if (files.length > 0) processFile(files[0]);
     });
 
     function handleFileSelect(event) {
       const file = event.target.files[0];
-      if (file) {
-        processFile(file);
-      }
+      if (file) processFile(file);
     }
 
-    /* --- ELABORAZIONE FILE E RESET CAMPI --- */
     async function processFile(file) {
       currentFile = file;
-
-      // Reset completo del form e dell'input file per evitare dati residui
       resetFormFields();
 
       if (file.type === 'application/pdf') {
@@ -368,7 +465,6 @@
       document.getElementById('btnAnalyze').disabled = false;
     }
 
-    // Renderizza PDF
     async function renderPdfPreview(file) {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -376,8 +472,8 @@
 
       const canvas = document.getElementById('pdfCanvas');
       const context = canvas.getContext('2d');
-      
       const viewport = page.getViewport({ scale: 1.2 });
+
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
@@ -387,7 +483,6 @@
       document.getElementById('pdfPreviewContainer').style.display = 'flex';
     }
 
-    // Renderizza Immagine
     function renderImagePreview(file) {
       const canvas = document.getElementById('pdfCanvas');
       const context = canvas.getContext('2d');
@@ -404,32 +499,33 @@
       img.src = URL.createObjectURL(file);
     }
 
-    // Svuota completamente i campi del Form
     function resetFormFields() {
+      // Form Bolletta
       document.getElementById('fornitore').value = '';
       document.getElementById('tipoUtenza').value = 'Luce / Elettricità';
       document.getElementById('importo').value = '';
       document.getElementById('scadenza').value = '';
       document.getElementById('periodo').value = '';
       document.getElementById('statoPagamento').value = 'Da Pagare';
-      document.getElementById('statusBadge').style.display = 'none';
+      document.getElementById('statusBadgeBolletta').style.display = 'none';
+
+      // Form Scontrino
+      document.getElementById('supermercato').value = '';
+      document.getElementById('importoScontrino').value = '';
+      document.getElementById('dataScontrino').value = '';
+      document.getElementById('statusBadgeScontrino').style.display = 'none';
     }
 
-    // Reset totale del file caricato
     function resetFile(event) {
       if (event) event.stopPropagation();
-      
       currentFile = null;
-      fileInput.value = ''; // Pulisce il valore per consentire il ricaricamento del medesimo file
-      
+      fileInput.value = '';
       document.getElementById('pdfPreviewContainer').style.display = 'none';
       document.getElementById('uploadPlaceholder').style.display = 'block';
       document.getElementById('btnAnalyze').disabled = true;
-      
       resetFormFields();
     }
 
-    /* --- CHIAMATA API ANALISI --- */
     async function analyzeWithGemini() {
       if (!currentFile) return;
 
@@ -437,45 +533,24 @@
       btn.innerText = "⏳ Analisi in corso...";
       btn.disabled = true;
 
-      // Pulisce i campi prima di estrarre i nuovi dati
       resetFormFields();
 
-      const formData = new FormData();
-      formData.append('file', currentFile);
-
       try {
-        /* Chiamata reale al tuo backend:
-        const response = await fetch('/api/analyze-bill', { method: 'POST', body: formData });
-        const data = await response.json();
-        
-        document.getElementById('fornitore').value = data.fornitore;
-        document.getElementById('tipoUtenza').value = data.tipoUtenza;
-        document.getElementById('importo').value = data.importo;
-        document.getElementById('scadenza').value = data.scadenza;
-        document.getElementById('periodo').value = data.periodo;
-        document.getElementById('statoPagamento').value = data.statoPagamento;
-        */
-
-        // Risposta dinamica di test basata sul file selezionato per verificare il cambio dati
-        const fileName = currentFile.name.toLowerCase();
-        
-        if (fileName.includes('argos')) {
+        if (currentDocType === 'bolletta') {
+          // Simulazione risposta Bolletta
           document.getElementById('fornitore').value = "Argos";
           document.getElementById('tipoUtenza').value = "Gas / Gas Naturale";
           document.getElementById('importo').value = "121,00";
           document.getElementById('scadenza').value = "2026-04-20";
           document.getElementById('periodo').value = "01/03/2026 - 31/03/2026 (107,78 Smc)";
+          document.getElementById('statusBadgeBolletta').style.display = 'block';
         } else {
-          // Dati generici dinamici per qualsiasi altro file caricato
-          document.getElementById('fornitore').value = "Nuovo Fornitore";
-          document.getElementById('tipoUtenza').value = "Luce / Elettricità";
-          document.getElementById('importo').value = "85,50";
-          document.getElementById('scadenza').value = "2026-05-15";
-          document.getElementById('periodo').value = "Mese Corrente";
+          // Simulazione risposta Scontrino
+          document.getElementById('supermercato').value = "Esselunga";
+          document.getElementById('importoScontrino').value = "45,20";
+          document.getElementById('dataScontrino').value = "2026-04-05";
+          document.getElementById('statusBadgeScontrino').style.display = 'block';
         }
-
-        document.getElementById('statusBadge').style.display = 'block';
-
       } catch (error) {
         console.error("Errore durante l'analisi:", error);
       } finally {
@@ -484,8 +559,8 @@
       }
     }
 
-    function saveBill() {
-      alert("Bolletta salvata correttamente nello scadenziario!");
+    function saveData(type) {
+      alert(`Dati ${type} salvati con successo!`);
       resetFile(null);
     }
   </script>
