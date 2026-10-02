@@ -174,7 +174,7 @@
             background: #fafafa;
             cursor: pointer;
             position: relative;
-            min-height: 280px;
+            min-height: 250px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -189,7 +189,7 @@
 
         #preview-container {
             width: 100%;
-            max-height: 380px;
+            max-height: 350px;
             overflow-y: auto;
             display: none;
             position: relative;
@@ -211,12 +211,30 @@
             font-weight: bold;
             font-size: 1rem;
             cursor: pointer;
-            margin-top: 16px;
+            margin-top: 12px;
             transition: background 0.2s;
         }
 
         .btn-primary:hover {
             background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
         }
 
         .btn-gold {
@@ -382,6 +400,7 @@
                     <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
 
                     <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza Documento con AI</button>
+                    <button class="btn-secondary" id="btn-new-file" onclick="resetAndUploadNew()">📂 Carica Nuovo Documento</button>
                     <div id="loading-indicator">⏳ Analisi OCR del documento in corso...</div>
                 </div>
 
@@ -519,6 +538,26 @@
             }
         }
 
+        // --- RESET & LOAD NEW FILE ---
+        function resetAndUploadNew() {
+            currentFileData = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('preview-container').innerHTML = '';
+            document.getElementById('preview-container').style.display = 'none';
+            document.getElementById('upload-prompt').style.display = 'block';
+            document.getElementById('ai-status-badge').style.display = 'none';
+
+            // Reset Form Fields
+            document.getElementById('field-ente').value = '';
+            document.getElementById('field-importo').value = '';
+            document.getElementById('field-data').value = '';
+            document.getElementById('field-note').value = '';
+            document.getElementById('field-stato').value = 'Da Pagare';
+
+            // Triggers file selector
+            document.getElementById('file-input').click();
+        }
+
         // --- DRAG & DROP SUPPORT ---
         function setupDragAndDrop() {
             const dropZone = document.getElementById('drop-zone');
@@ -624,7 +663,6 @@
             // Cerca importi con simbolo € o parole chiave TOTALE / PAGARE
             let importoTrovato = null;
             
-            // Regex per catturare "TOTALE DA PAGARE", "ENTRO IL", ecc.
             const importoMatches = cleanText.match(/(?:totale|pagare|importo|euro|€)\s*[:\s]*€?\s*(\d+[\.\,]\d{2})/i) ||
                                  cleanText.match(/€\s*(\d+[\.\,]\d{2})/i) ||
                                  cleanText.match(/(\d+[\.\,]\d{2})\s*€/i);
@@ -637,7 +675,7 @@
                 document.getElementById('field-importo').value = importoTrovato.toFixed(2);
             }
 
-            // Rilevamento Fornitore (es. Argos)
+            // Rilevamento Fornitore
             if(/argos/i.test(text)) {
                 document.getElementById('field-ente').value = 'Argos';
                 document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
