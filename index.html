@@ -656,7 +656,7 @@
         let dbSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
-        let pdfExtractedText = ""; // Testo nativo estratto direttamente dai PDF
+        let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
 
@@ -667,6 +667,16 @@
             renderScadenzario();
             setupDragAndDrop();
         };
+
+        // --- HELPER FORMATTAZIONE DATA DD/MM/AAAA ---
+        function formatDateToIT(dateString) {
+            if (!dateString) return '-';
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateString;
+        }
 
         // --- NAVIGATION ---
         function switchTab(tabName) {
@@ -773,7 +783,6 @@
                 reader.onload = function(e) {
                     const typedarray = new Uint8Array(e.target.result);
                     pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                        // Estrazione testo nativo per PDF vettoriali
                         let textPromises = [];
                         for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
                             textPromises.push(pdf.getPage(i).then(page => {
@@ -787,7 +796,6 @@
                             pdfExtractedText = pagesText.join('\n');
                         });
 
-                        // Visualizzazione della prima pagina come immagine
                         pdf.getPage(1).then(page => {
                             const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
@@ -815,7 +823,6 @@
             }
         }
 
-        // --- PRE-PROCESSING IMMAGINE (Aumenta il contrasto per box viola/scuri) ---
         function preprocessCanvasImage(dataUrl) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -829,7 +836,6 @@
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const d = imageData.data;
                     
-                    // Binarizzazione per evidenziare il testo chiaro su sfondo scuro
                     for (let i = 0; i < d.length; i += 4) {
                         const r = d[i], g = d[i+1], b = d[i+2];
                         let v = (0.2126 * r + 0.7152 * g + 0.0722 * b);
@@ -859,11 +865,9 @@
             try {
                 let textToParse = "";
 
-                // Se è un PDF con testo nativo, usiamo l'estrazione diretta
                 if (pdfExtractedText && pdfExtractedText.trim().length > 20) {
                     textToParse = pdfExtractedText;
                 } else {
-                    // Altrimenti processiamo l'immagine con soglia di contrasto prima di Tesseract
                     const processedImg = await preprocessCanvasImage(currentFileData);
                     const { data: { text } } = await Tesseract.recognize(processedImg, 'ita');
                     textToParse = text;
@@ -886,7 +890,6 @@
         }
 
         function parseExtractedText(text) {
-            console.log("TEXT EXTRACTED:\n", text);
             const textLower = text.toLowerCase();
             const cleanText = text.replace(/\s+/g, ' ');
 
@@ -960,7 +963,6 @@
                 document.getElementById('field-data-emissione').value = convertToInputDate(matchEmissione[1], matchEmissione[2], matchEmissione[3]);
             }
 
-            // Fallback date generiche
             const allDates = [...text.matchAll(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g)];
             if (allDates.length > 0) {
                 if (!document.getElementById('field-data-emissione').value) {
@@ -1023,8 +1025,8 @@
                     <td><b>${item.ente}</b></td>
                     <td>${item.categoria}</td>
                     <td><b>€ ${item.importo.toFixed(2)}</b></td>
-                    <td>${item.dataEmissione || '-'}</td>
-                    <td>${item.dataScadenza || '-'}</td>
+                    <td>${formatDateToIT(item.dataEmissione)}</td>
+                    <td>${formatDateToIT(item.dataScadenza)}</td>
                     <td><span class="status-badge ${badgeClass}">${item.stato}</span></td>
                     <td>
                         <div class="btn-actions-container">
