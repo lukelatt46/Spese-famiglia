@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FamilyBudget - Gestione Spese e Documenti</title>
     
-    <!-- PDF.js per rendering anteprima PDF -->
+    <!-- PDF.js per rendering anteprima e lettura testo nativo PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     
-    <!-- Tesseract.js per OCR reale lato client -->
+    <!-- Tesseract.js per OCR lato client -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <!-- Chart.js per i grafici -->
@@ -656,6 +656,7 @@
         let dbSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
+        let pdfExtractedText = ""; // Testo nativo estratto direttamente dai PDF
         let chartDashInstance = null;
         let chartStatInstance = null;
 
@@ -707,6 +708,7 @@
         // --- RESET & LOAD NEW FILE ---
         function resetAndUploadNew() {
             currentFileData = null;
+            pdfExtractedText = "";
             document.getElementById('file-input').value = '';
             document.getElementById('preview-container').innerHTML = '';
             document.getElementById('preview-container').style.display = 'none';
@@ -721,7 +723,6 @@
             document.getElementById('field-note').value = '';
             document.getElementById('field-stato').value = 'Da Pagare';
 
-            // Triggers file selector
             document.getElementById('file-input').click();
         }
 
@@ -765,12 +766,28 @@
             previewContainer.innerHTML = '';
             previewContainer.style.display = 'block';
             uploadPrompt.style.display = 'none';
+            pdfExtractedText = "";
 
             if (file.type === 'application/pdf') {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const typedarray = new Uint8Array(e.target.result);
                     pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                        // Estrazione testo nativo per PDF vettoriali
+                        let textPromises = [];
+                        for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+                            textPromises.push(pdf.getPage(i).then(page => {
+                                return page.getTextContent().then(textContent => {
+                                    return textContent.items.map(item => item.str).join(' ');
+                                });
+                            }));
+                        }
+                        
+                        Promise.all(textPromises).then(pagesText => {
+                            pdfExtractedText = pagesText.join('\n');
+                        });
+
+                        // Visualizzazione della prima pagina come immagine
                         pdf.getPage(1).then(page => {
                             const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
@@ -798,7 +815,36 @@
             }
         }
 
-        // --- REAL OCR / TEXT EXTRACTION ---
+        // --- PRE-PROCESSING IMMAGINE (Aumenta il contrasto per box viola/scuri) ---
+        function preprocessCanvasImage(dataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const d = imageData.data;
+                    
+                    // Binarizzazione per evidenziare il testo chiaro su sfondo scuro
+                    for (let i = 0; i < d.length; i += 4) {
+                        const r = d[i], g = d[i+1], b = d[i+2];
+                        let v = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+                        v = (v < 150) ? 0 : 255;
+                        d[i] = d[i+1] = d[i+2] = v;
+                    }
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    resolve(canvas.toDataURL());
+                };
+                img.src = dataUrl;
+            });
+        }
+
+        // --- OCR & EXTRACTION ---
         async function analizzaConOCR() {
             if(!currentFileData) {
                 alert('Seleziona o trascina prima un file da analizzare!');
@@ -811,12 +857,23 @@
             btnAnalyze.disabled = true;
 
             try {
-                const { data: { text } } = await Tesseract.recognize(currentFileData, 'ita');
+                let textToParse = "";
+
+                // Se è un PDF con testo nativo, usiamo l'estrazione diretta
+                if (pdfExtractedText && pdfExtractedText.trim().length > 20) {
+                    textToParse = pdfExtractedText;
+                } else {
+                    // Altrimenti processiamo l'immagine con soglia di contrasto prima di Tesseract
+                    const processedImg = await preprocessCanvasImage(currentFileData);
+                    const { data: { text } } = await Tesseract.recognize(processedImg, 'ita');
+                    textToParse = text;
+                }
+
                 loader.style.display = 'none';
                 btnAnalyze.disabled = false;
                 document.getElementById('ai-status-badge').style.display = 'inline-block';
 
-                parseExtractedText(text);
+                parseExtractedText(textToParse);
             } catch(err) {
                 loader.style.display = 'none';
                 btnAnalyze.disabled = false;
@@ -831,6 +888,7 @@
         function parseExtractedText(text) {
             console.log("TEXT EXTRACTED:\n", text);
             const textLower = text.toLowerCase();
+            const cleanText = text.replace(/\s+/g, ' ');
 
             // 1. FORNITORE & CATEGORIA
             if (/octopus/i.test(textLower)) {
@@ -855,40 +913,29 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // 2. IMPORTO TOTALE (Logica avanzata multi-pattern & tollerante agli errori OCR)
+            // 2. IMPORTO TOTALE
             let importoTrovato = null;
 
-            // Pulisce errori comuni di OCR dove il simbolo € viene letto come 'e', 'c', 'E' attaccato ai numeri
-            // Esempio: "55,17€", "55,17 €", "55.17E", "55,17c"
-            
             const regexes = [
-                // Pattern 1: Cifra seguita da €, euro, c, e (es: 55,17€ o 55.17 e)
-                /(\d{1,4}[.,' ]\d{2})\s*(?:€|euro|[eE]|c\b)/i,
-                // Pattern 2: Cifra vicino a frasi chiave (es: "dovrai pagare 55,17", "totale 55.17")
-                /(?:dovrai pagare|totale|importo|scadenza|saldo|pagare)\s*[:\s]*€?\s*(\d{1,4}[.,' ]\d{2})/i,
-                // Pattern 3: Simbolo € seguito da cifra (es: € 55,17)
-                /(?:€|euro)\s*(\d{1,4}[.,' ]\d{2})/i,
-                // Pattern 4: Qualsiasi numero decimale a due cifre isolato vicino a testo chiave
-                /(\d{1,4}[.,]\d{2})/g
+                /(?:dovrai pagare|totale da pagare|importo|totale|saldo|scadenza)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i,
+                /(\d{1,4}[\.,]\d{2})\s*(?:€|euro|[eE]|c\b)/i,
+                /(?:€|euro)\s*(\d{1,4}[\.,]\d{2})/i,
+                /(\d{1,4}[\.,]\d{2})/g
             ];
 
-            // Tenta le prime 3 regex mirate
             for (let i = 0; i < 3; i++) {
-                const match = text.match(regexes[i]);
+                const match = cleanText.match(regexes[i]);
                 if (match) {
                     importoTrovato = match[1];
                     break;
                 }
             }
 
-            // Fallback: Se ancora non trova, prende i decimali a 2 cifre escludendo le date
             if (!importoTrovato) {
-                const matches = [...text.matchAll(regexes[3])];
+                const matches = [...cleanText.matchAll(regexes[3])];
                 for (const m of matches) {
-                    const valStr = m[1].replace(',', '.');
-                    const valNum = parseFloat(valStr);
-                    // Evita di scambiare numeri giorno/mese per importi se non plausibili
-                    if (!isNaN(valNum) && valNum > 0.99) {
+                    const valNum = parseFloat(m[1].replace(',', '.'));
+                    if (!isNaN(valNum) && valNum > 1.0) {
                         importoTrovato = m[1];
                         break;
                     }
@@ -896,8 +943,7 @@
             }
 
             if (importoTrovato) {
-                // Normalizzazione: sostituisce virgole, apostrofi o spazi prima di convertire in Float
-                const importoClean = parseFloat(importoTrovato.replace(',', '.').replace("'", '.').replace(' ', '.'));
+                const importoClean = parseFloat(importoTrovato.replace(',', '.'));
                 if (!isNaN(importoClean)) {
                     document.getElementById('field-importo').value = importoClean.toFixed(2);
                 }
@@ -1066,7 +1112,6 @@
             document.getElementById('dash-pending-total').innerText = `€ ${totalPending.toFixed(2)}`;
             document.getElementById('dash-docs-count').innerText = dbSpese.length;
 
-            // Ultime Spese
             const recentTbody = document.getElementById('dash-recent-tbody');
             recentTbody.innerHTML = '';
             dbSpese.slice(0, 5).forEach(item => {
@@ -1078,7 +1123,7 @@
             renderDashboardChart();
         }
 
-        // --- CHARTS (ANDAMENTO NEL TEMPO PER MESE) ---
+        // --- CHARTS ---
         function renderDashboardChart() {
             const ctx = document.getElementById('chartDashboard').getContext('2d');
             
