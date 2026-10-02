@@ -61,7 +61,7 @@
 
         nav {
             display: flex;
-            gap: 20px;
+            gap: 16px;
         }
 
         .nav-link {
@@ -96,7 +96,7 @@
         /* DASHBOARD STYLES */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -133,6 +133,7 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
         }
 
         /* SCANNER AI STYLES */
@@ -245,6 +246,13 @@
             background: #ab700b;
         }
 
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            width: auto;
+            margin: 0;
+        }
+
         .form-row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -306,18 +314,12 @@
             font-size: 0.85rem;
             cursor: pointer;
             user-select: none;
-            position: relative;
             transition: background 0.2s;
         }
 
         th:hover {
             background: #edf2f7;
             color: var(--primary-color);
-        }
-
-        th.sort-active {
-            color: var(--primary-color);
-            font-weight: bold;
         }
 
         .status-badge {
@@ -346,10 +348,6 @@
             font-weight: 600;
         }
 
-        .btn-edit:hover {
-            background: #2563eb;
-        }
-
         .btn-delete {
             background: #ef4444;
             color: white;
@@ -359,10 +357,6 @@
             cursor: pointer;
             font-size: 0.8rem;
             font-weight: 600;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
         }
 
         .badge-extracted {
@@ -421,11 +415,6 @@
             padding-bottom: 10px;
         }
 
-        .modal-header h3 {
-            font-size: 1.1rem;
-            color: var(--text-color);
-        }
-
         .close-modal {
             background: none;
             border: none;
@@ -442,6 +431,36 @@
             padding-top: 10px;
             border-top: 1px solid var(--border-color);
         }
+
+        /* TABELLA ARTICOLI SCONTRINO */
+        .items-table-container {
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+
+        .items-table-container h4 {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .items-table {
+            width: 100%;
+            font-size: 0.85rem;
+        }
+
+        .items-table input, .items-table select {
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -453,8 +472,9 @@
         <nav>
             <a class="nav-link active" onclick="switchTab('dashboard')">Dashboard</a>
             <a class="nav-link" onclick="switchTab('scanner')">Scanner AI</a>
+            <a class="nav-link" onclick="switchTab('articoli')">Analisi Articoli</a>
             <a class="nav-link" onclick="switchTab('scadenzario')">Scadenzario</a>
-            <a class="nav-link" onclick="switchTab('statistiche')">Statistiche</a>
+            <a class="nav-link" onclick="switchTab('statistiche')">Statistiche Utenze</a>
         </nav>
     </header>
 
@@ -470,6 +490,10 @@
                 <div class="stat-card">
                     <h4>Bollette da Pagare</h4>
                     <div class="amount" style="color: #d97706;" id="dash-pending-total">€ 0,00</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Articoli Registrati</h4>
+                    <div class="amount" style="color: #10b981;" id="dash-items-count">0</div>
                 </div>
                 <div class="stat-card">
                     <h4>Documenti Archiviati</h4>
@@ -535,18 +559,18 @@
                     <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Controlla o completa le informazioni prima del salvataggio.</p>
 
                     <div class="form-group">
-                        <label>Ente / Fornitore / Negozio</label>
-                        <input type="text" id="field-ente" class="form-control" placeholder="es. Argos, Eurospin, Octopus Energy">
+                        <label>Ente / Fornitore / Supermercato</label>
+                        <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Coop, Conad, Argos">
                     </div>
 
                     <div class="form-group" id="group-categoria">
-                        <label>Tipo Utenza / Categoria</label>
+                        <label>Tipo Utenza / Categoria Generale</label>
                         <select id="field-categoria" class="form-control">
+                            <option value="Spesa Alimentare">🛒 Spesa Alimentare / Supermercato</option>
                             <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
                             <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
                             <option value="Acqua">💧 Acqua</option>
                             <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                             <option value="Altro">📦 Altro</option>
                         </select>
                     </div>
@@ -563,37 +587,79 @@
                             <input type="date" id="field-data-emissione" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label id="label-data">Data Scadenza Pagamento</label>
+                            <label id="label-data">Data Spesa / Scadenza</label>
                             <input type="date" id="field-data-scadenza" class="form-control">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Periodo di Riferimento / Note</label>
-                        <input type="text" id="field-note" class="form-control" placeholder="es. Mese di Marzo 2026">
+                    <!-- DETTAGLIO ARTICOLI PER SCONTRINI (OPZIONE A) -->
+                    <div id="container-dettaglio-articoli" class="items-table-container">
+                        <h4>
+                            <span>📦 Dettaglio Articoli Scontrino</span>
+                            <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi Articolo</button>
+                        </h4>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Macro-Area</th>
+                                    <th style="width: 70px;">€</th>
+                                    <th style="width: 30px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-articoli-scontrino">
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" style="margin-top:16px;">
                         <label>Stato Pagamento</label>
                         <select id="field-stato" class="form-control">
-                            <option value="Da Pagare">⏳ Da Pagare</option>
                             <option value="Pagato">✅ Pagato</option>
+                            <option value="Da Pagare">⏳ Da Pagare</option>
                         </select>
                     </div>
 
-                    <button class="btn-primary btn-gold" onclick="salvaDocumento()">💾 Salva nello Scadenzario</button>
+                    <button class="btn-primary btn-gold" onclick="salvaDocumento()">💾 Salva nello Scadenzario e Archivio</button>
                 </div>
 
             </div>
         </section>
 
-        <!-- SECTION 3: SCADENZIARIO CON FILTRI ED ORDINAMENTO -->
+        <!-- SECTION 3: ANALISI ARTICOLI & MACRO AREE -->
+        <section id="sec-articoli" class="page-section">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>🏆 Prodotti Acquistati Più Di Frequente</h3>
+                    <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">Classifica degli articoli estratti dagli scontrini con conteggio acquisti e spesa totale.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome Prodotto</th>
+                                <th>Macro-Area</th>
+                                <th>Volte Acquistato</th>
+                                <th>Spesa Totale</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-frequenza-articoli">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>🍎 Spesa per Macro-Area</h3>
+                    <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">Suddisvisione totale degli acquisti nelle 5 categorie principali.</p>
+                    <canvas id="chartMacroAree" height="180"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: SCADENZIARIO -->
         <section id="sec-scadenzario" class="page-section">
             <div class="card">
                 <h3>📅 Scadenzario & Archivio Spese</h3>
                 <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Filtra le voci o clicca sulle intestazioni della tabella per ordinare i dati.</p>
 
-                <!-- BARRA DEI FILTRI -->
                 <div class="filters-bar">
                     <div class="form-group">
                         <label>🔍 Cerca Fornitore / Note</label>
@@ -603,11 +669,11 @@
                         <label>📂 Categoria</label>
                         <select id="filter-categoria" class="form-control" onchange="renderScadenzario()">
                             <option value="ALL">Tutte le Categorie</option>
+                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                             <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
                             <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
                             <option value="Acqua">💧 Acqua</option>
                             <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                             <option value="Altro">📦 Altro</option>
                         </select>
                     </div>
@@ -625,7 +691,6 @@
                     </div>
                 </div>
 
-                <!-- TABELLA SPESE -->
                 <table>
                     <thead>
                         <tr>
@@ -645,10 +710,10 @@
             </div>
         </section>
 
-        <!-- SECTION 4: STATISTICHE -->
+        <!-- SECTION 5: STATISTICHE UTENZE -->
         <section id="sec-statistiche" class="page-section">
             <div class="card">
-                <h3>📊 Ripartizione Spese per Categoria</h3>
+                <h3>📊 Ripartizione Spese Utenze & Generali</h3>
                 <canvas id="chartStatistiche" height="100"></canvas>
             </div>
         </section>
@@ -672,11 +737,11 @@
             <div class="form-group">
                 <label>Tipo Utenza / Categoria</label>
                 <select id="edit-categoria" class="form-control">
+                    <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                     <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
                     <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
                     <option value="Acqua">💧 Acqua</option>
                     <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                    <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                     <option value="Altro">📦 Altro</option>
                 </select>
             </div>
@@ -698,15 +763,10 @@
             </div>
 
             <div class="form-group">
-                <label>Periodo di Riferimento / Note</label>
-                <input type="text" id="edit-note" class="form-control">
-            </div>
-
-            <div class="form-group">
                 <label>Stato Pagamento</label>
                 <select id="edit-stato" class="form-control">
-                    <option value="Da Pagare">⏳ Da Pagare</option>
                     <option value="Pagato">✅ Pagato</option>
+                    <option value="Da Pagare">⏳ Da Pagare</option>
                 </select>
             </div>
 
@@ -719,16 +779,18 @@
 
     <script>
         let dbSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
+        let dbArticoli = JSON.parse(localStorage.getItem('family_budget_articoli')) || [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
         let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
+        let chartMacroInstance = null;
 
-        // Stato Ordinamento Tabella
         let sortColumn = 'dataScadenza';
         let sortAscending = false;
 
+        const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Altro'];
         const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
         window.onload = function() {
@@ -737,17 +799,13 @@
             setupDragAndDrop();
         };
 
-        // --- HELPER FORMATTAZIONE DATA DD/MM/AAAA ---
         function formatDateToIT(dateString) {
             if (!dateString) return '-';
             const parts = dateString.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
             return dateString;
         }
 
-        // --- NAVIGATION ---
         function switchTab(tabName) {
             document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
@@ -759,12 +817,16 @@
             } else if(tabName === 'scanner') {
                 document.querySelectorAll('.nav-link')[1].classList.add('active');
                 document.getElementById('sec-scanner').classList.add('active');
-            } else if(tabName === 'scadenzario') {
+            } else if(tabName === 'articoli') {
                 document.querySelectorAll('.nav-link')[2].classList.add('active');
+                document.getElementById('sec-articoli').classList.add('active');
+                renderAnalisiArticoli();
+            } else if(tabName === 'scadenzario') {
+                document.querySelectorAll('.nav-link')[3].classList.add('active');
                 document.getElementById('sec-scadenzario').classList.add('active');
                 renderScadenzario();
             } else if(tabName === 'statistiche') {
-                document.querySelectorAll('.nav-link')[3].classList.add('active');
+                document.querySelectorAll('.nav-link')[4].classList.add('active');
                 document.getElementById('sec-statistiche').classList.add('active');
                 renderStatistiche();
             }
@@ -775,16 +837,35 @@
             document.getElementById('type-scontrino').classList.toggle('active', type === 'scontrino');
             document.getElementById('type-bolletta').classList.toggle('active', type === 'bolletta');
             
+            const contArticoli = document.getElementById('container-dettaglio-articoli');
             if(type === 'scontrino') {
                 document.getElementById('label-data').innerText = 'Data Spesa';
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
+                document.getElementById('field-stato').value = 'Pagato';
+                contArticoli.style.display = 'block';
             } else {
                 document.getElementById('label-data').innerText = 'Data Scadenza Pagamento';
                 document.getElementById('field-categoria').value = 'Luce / Elettricità';
+                document.getElementById('field-stato').value = 'Da Pagare';
+                contArticoli.style.display = 'none';
             }
         }
 
-        // --- RESET & LOAD NEW FILE ---
+        function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '') {
+            const tbody = document.getElementById('tbody-articoli-scontrino');
+            const tr = document.createElement('tr');
+            
+            let options = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
+
+            tr.innerHTML = `
+                <td><input type="text" class="item-name" placeholder="es. Latte, Detersivo" value="${nome}"></td>
+                <td><select class="item-macro">${options}</select></td>
+                <td><input type="number" step="0.01" class="item-price" placeholder="0.00" value="${prezzo}"></td>
+                <td><button type="button" onclick="this.closest('tr').remove()" style="background:none; border:none; color:red; cursor:pointer;">✖</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
         function resetAndUploadNew() {
             currentFileData = null;
             pdfExtractedText = "";
@@ -793,19 +874,16 @@
             document.getElementById('preview-container').style.display = 'none';
             document.getElementById('upload-prompt').style.display = 'block';
             document.getElementById('ai-status-badge').style.display = 'none';
+            document.getElementById('tbody-articoli-scontrino').innerHTML = '';
 
-            // Reset Form Fields
             document.getElementById('field-ente').value = '';
             document.getElementById('field-importo').value = '';
             document.getElementById('field-data-emissione').value = '';
             document.getElementById('field-data-scadenza').value = '';
-            document.getElementById('field-note').value = '';
-            document.getElementById('field-stato').value = 'Da Pagare';
 
             document.getElementById('file-input').click();
         }
 
-        // --- DRAG & DROP SUPPORT ---
         function setupDragAndDrop() {
             const dropZone = document.getElementById('drop-zone');
 
@@ -828,9 +906,7 @@
             dropZone.addEventListener('drop', (e) => {
                 const dt = e.dataTransfer;
                 const files = dt.files;
-                if(files.length > 0) {
-                    processFile(files[0]);
-                }
+                if(files.length > 0) processFile(files[0]);
             });
         }
 
@@ -855,9 +931,7 @@
                         let textPromises = [];
                         for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
                             textPromises.push(pdf.getPage(i).then(page => {
-                                return page.getTextContent().then(textContent => {
-                                    return textContent.items.map(item => item.str).join(' ');
-                                });
+                                return page.getTextContent().then(textContent => textContent.items.map(item => item.str).join(' '));
                             }));
                         }
                         
@@ -892,34 +966,6 @@
             }
         }
 
-        function preprocessCanvasImage(dataUrl) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const d = imageData.data;
-                    
-                    for (let i = 0; i < d.length; i += 4) {
-                        const r = d[i], g = d[i+1], b = d[i+2];
-                        let v = (0.2126 * r + 0.7152 * g + 0.0722 * b);
-                        v = (v < 150) ? 0 : 255;
-                        d[i] = d[i+1] = d[i+2] = v;
-                    }
-                    
-                    ctx.putImageData(imageData, 0, 0);
-                    resolve(canvas.toDataURL());
-                };
-                img.src = dataUrl;
-            });
-        }
-
-        // --- OCR & EXTRACTION ---
         async function analizzaConOCR() {
             if(!currentFileData) {
                 alert('Seleziona o trascina prima un file da analizzare!');
@@ -937,8 +983,7 @@
                 if (pdfExtractedText && pdfExtractedText.trim().length > 20) {
                     textToParse = pdfExtractedText;
                 } else {
-                    const processedImg = await preprocessCanvasImage(currentFileData);
-                    const { data: { text } } = await Tesseract.recognize(processedImg, 'ita');
+                    const { data: { text } } = await Tesseract.recognize(currentFileData, 'ita');
                     textToParse = text;
                 }
 
@@ -950,7 +995,7 @@
             } catch(err) {
                 loader.style.display = 'none';
                 btnAnalyze.disabled = false;
-                alert('Errore durante la lettura del documento. Compila i dati manualmente.');
+                alert('Errore durante la lettura del documento.');
             }
         }
 
@@ -958,96 +1003,67 @@
             return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
 
+        function guessMacroArea(prodotto) {
+            const p = prodotto.toLowerCase();
+            if (/mela|pere|banana|frutta|insalata|pomodor|zucchine|carote|verdura|oragano|limoni/i.test(p)) return 'Frutta e verdura';
+            if (/detersivo|scottex|carta|candeggina|sgrassat|piatti|lavatrice|spugna|wc/i.test(p)) return 'Cura della casa';
+            if (/shampoo|sapone|bagnoschiuma|dentifricio|assorbenti|crema|rasoio/i.test(p)) return 'Cura della persona';
+            if (/pane|latte|pasta|riso|carne|pollo|prosciutto|formaggio|mozzarella|uova|biscotti|olio|acqua|caffè|passata/i.test(p)) return 'Alimentari';
+            return 'Altro';
+        }
+
         function parseExtractedText(text) {
             const textLower = text.toLowerCase();
-            const cleanText = text.replace(/\s+/g, ' ');
+            const lines = text.split('\n');
 
-            // 1. FORNITORE & CATEGORIA
-            if (/octopus/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Octopus Energy';
-                document.getElementById('field-categoria').value = 'Luce / Elettricità';
-            } else if (/argos/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Argos';
-                document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
-            } else if (/enel/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Enel';
-                document.getElementById('field-categoria').value = 'Luce / Elettricità';
-            } else if (/plenitude|eni/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Eni Plenitude';
-            } else if (/edison/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Edison';
-            } else if (/servizio elettrico nazionale/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Servizio Elettrico Nazionale';
-                document.getElementById('field-categoria').value = 'Luce / Elettricità';
-            } else if (/eurospin|coop|conad|lidl|despar|carrefour|esselunga/i.test(textLower)) {
-                const matchEnte = text.match(/(eurospin|coop|conad|lidl|despar|carrefour|esselunga)/i);
-                if (matchEnte) document.getElementById('field-ente').value = matchEnte[0].toUpperCase();
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-            }
+            // 1. FORNITORE
+            if (/eurospin/i.test(textLower)) document.getElementById('field-ente').value = 'EUROSPIN';
+            else if (/coop/i.test(textLower)) document.getElementById('field-ente').value = 'COOP';
+            else if (/conad/i.test(textLower)) document.getElementById('field-ente').value = 'CONAD';
+            else if (/lidl/i.test(textLower)) document.getElementById('field-ente').value = 'LIDL';
+            else if (/octopus/i.test(textLower)) document.getElementById('field-ente').value = 'Octopus Energy';
+            else if (/argos/i.test(textLower)) document.getElementById('field-ente').value = 'Argos';
 
             // 2. IMPORTO TOTALE
-            let importoTrovato = null;
-
-            const regexes = [
-                /(?:dovrai pagare|totale da pagare|importo|totale|saldo|scadenza)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i,
-                /(\d{1,4}[\.,]\d{2})\s*(?:€|euro|[eE]|c\b)/i,
-                /(?:€|euro)\s*(\d{1,4}[\.,]\d{2})/i,
-                /(\d{1,4}[\.,]\d{2})/g
-            ];
-
-            for (let i = 0; i < 3; i++) {
-                const match = cleanText.match(regexes[i]);
-                if (match) {
-                    importoTrovato = match[1];
-                    break;
-                }
+            const matchTot = text.match(/(?:totale|importo|dovrai pagare|saldo)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i);
+            if (matchTot) {
+                document.getElementById('field-importo').value = parseFloat(matchTot[1].replace(',', '.')).toFixed(2);
             }
 
-            if (!importoTrovato) {
-                const matches = [...cleanText.matchAll(regexes[3])];
-                for (const m of matches) {
-                    const valNum = parseFloat(m[1].replace(',', '.'));
-                    if (!isNaN(valNum) && valNum > 1.0) {
-                        importoTrovato = m[1];
-                        break;
+            // 3. DATE
+            const matchDate = text.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
+            if (matchDate) {
+                const dateIso = convertToInputDate(matchDate[1], matchDate[2], matchDate[3]);
+                document.getElementById('field-data-scadenza').value = dateIso;
+                document.getElementById('field-data-emissione').value = dateIso;
+            }
+
+            // 4. ESTRAZIONE ARTICOLI (OPZIONE A)
+            if (currentDocType === 'scontrino') {
+                const tbody = document.getElementById('tbody-articoli-scontrino');
+                tbody.innerHTML = '';
+
+                lines.forEach(line => {
+                    const matchItem = line.match(/^([a-zA-Zàèéìòù\s]{3,25})\s+(\d{1,3}[\.,]\d{2})$/);
+                    if (matchItem) {
+                        const nomeProd = matchItem[1].trim();
+                        const prezzoProd = parseFloat(matchItem[2].replace(',', '.'));
+                        if (!/totale|subtotale|contanti|resto|bancomat|carta/i.test(nomeProd)) {
+                            const macro = guessMacroArea(nomeProd);
+                            aggiungiRigaArticolo(nomeProd, macro, prezzoProd.toFixed(2));
+                        }
                     }
-                }
-            }
+                });
 
-            if (importoTrovato) {
-                const importoClean = parseFloat(importoTrovato.replace(',', '.'));
-                if (!isNaN(importoClean)) {
-                    document.getElementById('field-importo').value = importoClean.toFixed(2);
-                }
-            }
-
-            // 3. DATE (EMISSIONE E SCADENZA)
-            const matchScadenza = text.match(/(?:entro il|scadenza|scad\.|entro)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
-            if (matchScadenza) {
-                document.getElementById('field-data-scadenza').value = convertToInputDate(matchScadenza[1], matchScadenza[2], matchScadenza[3]);
-            }
-
-            const matchEmissione = text.match(/(?:data fattura|data emiss|del|emessa il|data:)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
-            if (matchEmissione) {
-                document.getElementById('field-data-emissione').value = convertToInputDate(matchEmissione[1], matchEmissione[2], matchEmissione[3]);
-            }
-
-            const allDates = [...text.matchAll(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g)];
-            if (allDates.length > 0) {
-                if (!document.getElementById('field-data-emissione').value) {
-                    document.getElementById('field-data-emissione').value = convertToInputDate(allDates[0][1], allDates[0][2], allDates[0][3]);
-                }
-                if (allDates.length > 1 && !document.getElementById('field-data-scadenza').value) {
-                    document.getElementById('field-data-scadenza').value = convertToInputDate(allDates[1][1], allDates[1][2], allDates[1][3]);
+                if (tbody.children.length === 0) {
+                    aggiungiRigaArticolo();
                 }
             }
         }
 
-        // --- SALVATAGGIO & DATABASE ---
         function salvaDocumento() {
             const ente = document.getElementById('field-ente').value.trim();
             const importo = parseFloat(document.getElementById('field-importo').value);
-            const dataEmissione = document.getElementById('field-data-emissione').value;
             const dataScadenza = document.getElementById('field-data-scadenza').value;
 
             if(!ente || isNaN(importo)) {
@@ -1055,76 +1071,143 @@
                 return;
             }
 
+            const docId = Date.now();
             const nuovoDoc = {
-                id: Date.now(),
+                id: docId,
                 tipo: currentDocType,
                 ente: ente,
                 categoria: document.getElementById('field-categoria').value,
                 importo: importo,
-                dataEmissione: dataEmissione,
+                dataEmissione: document.getElementById('field-data-emissione').value,
                 dataScadenza: dataScadenza,
-                note: document.getElementById('field-note').value.trim(),
                 stato: document.getElementById('field-stato').value
             };
 
             dbSpese.unshift(nuovoDoc);
             localStorage.setItem('family_budget_spese', JSON.stringify(dbSpese));
 
-            alert('Documento salvato con successo!');
+            // Salva Articoli Estratti
+            if (currentDocType === 'scontrino') {
+                const rows = document.querySelectorAll('#tbody-articoli-scontrino tr');
+                rows.forEach(r => {
+                    const nome = r.querySelector('.item-name')?.value.trim();
+                    const macro = r.querySelector('.item-macro')?.value;
+                    const prezzo = parseFloat(r.querySelector('.item-price')?.value);
+
+                    if (nome && !isNaN(prezzo)) {
+                        dbArticoli.push({
+                            id: Date.now() + Math.random(),
+                            docId: docId,
+                            data: dataScadenza || new Date().toISOString().split('T')[0],
+                            nome: nome,
+                            macroArea: macro,
+                            prezzo: prezzo
+                        });
+                    }
+                });
+                localStorage.setItem('family_budget_articoli', JSON.stringify(dbArticoli));
+            }
+
+            alert('Documento e articoli salvati con successo!');
             switchTab('scadenzario');
         }
 
-        // --- ORDINAMENTO TABELLA ---
-        function sortTable(column) {
-            if (sortColumn === column) {
-                sortAscending = !sortAscending;
-            } else {
-                sortColumn = column;
-                sortAscending = true;
-            }
-            renderScadenzario();
-        }
+        // --- RENDER ANALISI ARTICOLI (OPZIONE A + B) ---
+        function renderAnalisiArticoli() {
+            // 1. TABELLA FREQUENZA ARTICOLI
+            const tbody = document.getElementById('tbody-frequenza-articoli');
+            tbody.innerHTML = '';
 
-        function updateSortIcons() {
-            const columns = ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'];
-            columns.forEach(col => {
-                const icon = document.getElementById(`sort-icon-${col}`);
-                if (icon) {
-                    if (col === sortColumn) {
-                        icon.innerText = sortAscending ? '▲' : '▼';
-                    } else {
-                        icon.innerText = '↕';
-                    }
+            const stats = {};
+            dbArticoli.forEach(art => {
+                const key = art.nome.toLowerCase();
+                if (!stats[key]) {
+                    stats[key] = { nome: art.nome, macroArea: art.macroArea, conteggio: 0, spesaTotale: 0 };
+                }
+                stats[key].conteggio += 1;
+                stats[key].spesaTotale += art.prezzo;
+            });
+
+            const sortedList = Object.values(stats).sort((a, b) => b.conteggio - a.conteggio);
+
+            if (sortedList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Nessun articolo estratto dagli scontrini.</td></tr>`;
+            } else {
+                sortedList.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><b>${item.nome}</b></td>
+                        <td>${item.macroArea}</td>
+                        <td><span class="status-badge status-paid">${item.conteggio} volte</span></td>
+                        <td><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // 2. GRAFICO MACRO-AREE
+            const macroTotals = {};
+            MACRO_AREE.forEach(m => macroTotals[m] = 0);
+            dbArticoli.forEach(art => {
+                if (macroTotals[art.macroArea] !== undefined) {
+                    macroTotals[art.macroArea] += art.prezzo;
+                } else {
+                    macroTotals['Altro'] += art.prezzo;
+                }
+            });
+
+            const ctx = document.getElementById('chartMacroAree').getContext('2d');
+            if (chartMacroInstance) chartMacroInstance.destroy();
+
+            chartMacroInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(macroTotals),
+                    datasets: [{
+                        data: Object.values(macroTotals),
+                        backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#94a3b8']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
         }
 
-        // --- RENDER SCADENZARIO (FILTRATO ED ORDINATO) ---
+        // --- ORDINAMENTO & TABELLA SCADENZARIO ---
+        function sortTable(column) {
+            if (sortColumn === column) sortAscending = !sortAscending;
+            else { sortColumn = column; sortAscending = true; }
+            renderScadenzario();
+        }
+
+        function updateSortIcons() {
+            ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'].forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (icon) icon.innerText = (col === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
+            });
+        }
+
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             tbody.innerHTML = '';
 
-            // 1. Lettura dei valori di filtro
             const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
             const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
             const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
             const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
 
-            // 2. Filtraggio dati
             let filteredList = dbSpese.filter(item => {
-                const matchSearch = item.ente.toLowerCase().includes(searchVal) || (item.note && item.note.toLowerCase().includes(searchVal));
+                const matchSearch = item.ente.toLowerCase().includes(searchVal);
                 const matchCat = catVal === 'ALL' || item.categoria === catVal;
                 const matchStato = statoVal === 'ALL' || item.stato === statoVal;
-                
                 let matchMonth = true;
-                if (monthVal && item.dataScadenza) {
-                    matchMonth = item.dataScadenza.startsWith(monthVal);
-                }
+                if (monthVal && item.dataScadenza) matchMonth = item.dataScadenza.startsWith(monthVal);
 
                 return matchSearch && matchCat && matchStato && matchMonth;
             });
 
-            // 3. Ordinamento dati
             filteredList.sort((a, b) => {
                 let valA = a[sortColumn] || '';
                 let valB = b[sortColumn] || '';
@@ -1145,7 +1228,7 @@
             updateSortIcons();
 
             if(filteredList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">Nessun documento corrisponde ai criteri di ricerca.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">Nessun documento corrisponde ai filtri.</td></tr>`;
                 return;
             }
 
@@ -1173,7 +1256,6 @@
             });
         }
 
-        // --- MODAL EDITING ---
         function apriModalModifica(id) {
             const item = dbSpese.find(d => d.id === id);
             if(!item) return;
@@ -1184,7 +1266,6 @@
             document.getElementById('edit-importo').value = item.importo;
             document.getElementById('edit-data-emissione').value = item.dataEmissione || '';
             document.getElementById('edit-data-scadenza').value = item.dataScadenza || '';
-            document.getElementById('edit-note').value = item.note || '';
             document.getElementById('edit-stato').value = item.stato;
 
             document.getElementById('modal-edit').classList.add('active');
@@ -1204,7 +1285,6 @@
                 dbSpese[index].importo = parseFloat(document.getElementById('edit-importo').value) || 0;
                 dbSpese[index].dataEmissione = document.getElementById('edit-data-emissione').value;
                 dbSpese[index].dataScadenza = document.getElementById('edit-data-scadenza').value;
-                dbSpese[index].note = document.getElementById('edit-note').value.trim();
                 dbSpese[index].stato = document.getElementById('edit-stato').value;
 
                 localStorage.setItem('family_budget_spese', JSON.stringify(dbSpese));
@@ -1215,15 +1295,16 @@
         }
 
         function eliminaDocumento(id) {
-            if(confirm('Sei sicuro di voler eliminare questa voce?')) {
+            if(confirm('Sei sicuro di voler eliminare questo documento e i relativi articoli?')) {
                 dbSpese = dbSpese.filter(item => item.id !== id);
+                dbArticoli = dbArticoli.filter(art => art.docId !== id);
                 localStorage.setItem('family_budget_spese', JSON.stringify(dbSpese));
+                localStorage.setItem('family_budget_articoli', JSON.stringify(dbArticoli));
                 renderScadenzario();
                 updateDashboard();
             }
         }
 
-        // --- UPDATE DASHBOARD ---
         function updateDashboard() {
             let totalMonth = 0;
             let totalPending = 0;
@@ -1248,6 +1329,7 @@
             document.getElementById('dash-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
             document.getElementById('dash-pending-total').innerText = `€ ${totalPending.toFixed(2)}`;
             document.getElementById('dash-docs-count').innerText = dbSpese.length;
+            document.getElementById('dash-items-count').innerText = dbArticoli.length;
 
             const recentTbody = document.getElementById('dash-recent-tbody');
             recentTbody.innerHTML = '';
@@ -1260,10 +1342,8 @@
             renderDashboardChart();
         }
 
-        // --- CHARTS ---
         function renderDashboardChart() {
             const ctx = document.getElementById('chartDashboard').getContext('2d');
-            
             const monthlyTotals = {};
 
             dbSpese.forEach(item => {
@@ -1273,10 +1353,7 @@
                     if(!isNaN(d.getTime())) {
                         const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
                         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        
-                        if(!monthlyTotals[key]) {
-                            monthlyTotals[key] = { label: monthLabel, amount: 0 };
-                        }
+                        if(!monthlyTotals[key]) monthlyTotals[key] = { label: monthLabel, amount: 0 };
                         monthlyTotals[key].amount += item.importo;
                     }
                 }
@@ -1301,28 +1378,14 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ` Speso: € ${context.raw.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
 
         function renderStatistiche() {
             const ctx = document.getElementById('chartStatistiche').getContext('2d');
-            
             const categories = {};
             dbSpese.forEach(item => {
                 categories[item.categoria] = (categories[item.categoria] || 0) + item.importo;
@@ -1339,9 +1402,7 @@
                         backgroundColor: ['#5142e6', '#c5820f', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
                     }]
                 },
-                options: {
-                    responsive: true
-                }
+                options: { responsive: true }
             });
         }
     </script>
