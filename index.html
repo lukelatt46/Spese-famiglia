@@ -245,6 +245,12 @@
             background: #ab700b;
         }
 
+        .form-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
         .form-group {
             margin-bottom: 16px;
         }
@@ -434,9 +440,16 @@
                         <input type="number" step="0.01" id="field-importo" class="form-control" placeholder="0,00">
                     </div>
 
-                    <div class="form-group">
-                        <label id="label-data">Data Scadenza Pagamento / Data Spesa</label>
-                        <input type="date" id="field-data" class="form-control">
+                    <!-- DATE: EMISSIONE E SCADENZA -->
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>Data Emissione / Fattura</label>
+                            <input type="date" id="field-data-emissione" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label id="label-data">Data Scadenza Pagamento</label>
+                            <input type="date" id="field-data-scadenza" class="form-control">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -469,7 +482,8 @@
                             <th>Fornitore</th>
                             <th>Categoria</th>
                             <th>Importo</th>
-                            <th>Data</th>
+                            <th>Data Emissione</th>
+                            <th>Data Scadenza</th>
                             <th>Stato</th>
                             <th>Azioni</th>
                         </tr>
@@ -550,7 +564,8 @@
             // Reset Form Fields
             document.getElementById('field-ente').value = '';
             document.getElementById('field-importo').value = '';
-            document.getElementById('field-data').value = '';
+            document.getElementById('field-data-emissione').value = '';
+            document.getElementById('field-data-scadenza').value = '';
             document.getElementById('field-note').value = '';
             document.getElementById('field-stato').value = 'Da Pagare';
 
@@ -657,12 +672,15 @@
             }
         }
 
+        function convertToInputDate(day, month, year) {
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
         function parseExtractedText(text) {
             const cleanText = text.replace(/,/g, '.');
 
-            // Cerca importi con simbolo € o parole chiave TOTALE / PAGARE
+            // 1. IMPORTI
             let importoTrovato = null;
-            
             const importoMatches = cleanText.match(/(?:totale|pagare|importo|euro|€)\s*[:\s]*€?\s*(\d+[\.\,]\d{2})/i) ||
                                  cleanText.match(/€\s*(\d+[\.\,]\d{2})/i) ||
                                  cleanText.match(/(\d+[\.\,]\d{2})\s*€/i);
@@ -670,12 +688,11 @@
             if(importoMatches && importoMatches[1]) {
                 importoTrovato = parseFloat(importoMatches[1]);
             }
-
             if(importoTrovato) {
                 document.getElementById('field-importo').value = importoTrovato.toFixed(2);
             }
 
-            // Rilevamento Fornitore
+            // 2. FORNITORE
             if(/argos/i.test(text)) {
                 document.getElementById('field-ente').value = 'Argos';
                 document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
@@ -688,14 +705,31 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // Rilevamento Date (formato DD/MM/YYYY)
-            const dateMatch = text.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
-            if(dateMatch) {
-                const formattedDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
-                document.getElementById('field-data').value = formattedDate;
+            // 3. DATE (EMISSIONE VS SCADENZA)
+            // Cercare Data Scadenza (es: "entro il 18/05/2026" oppure "scadenza 18/05/2026")
+            const matchScadenza = text.match(/(?:entro il|scadenza|scad\.)\s*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
+            if(matchScadenza) {
+                document.getElementById('field-data-scadenza').value = convertToInputDate(matchScadenza[1], matchScadenza[2], matchScadenza[3]);
             }
 
-            // Note/Periodo
+            // Cercare Data Emissione / Fattura (es: "data fattura 04/05/2026" oppure "del 04/05/2026")
+            const matchEmissione = text.match(/(?:data fattura|data emiss|del|emessa il)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
+            if(matchEmissione) {
+                document.getElementById('field-data-emissione').value = convertToInputDate(matchEmissione[1], matchEmissione[2], matchEmissione[3]);
+            }
+
+            // Fallback se non si trovano con contesto
+            const allDates = [...text.matchAll(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g)];
+            if(allDates.length > 0) {
+                if(!document.getElementById('field-data-emissione').value) {
+                    document.getElementById('field-data-emissione').value = convertToInputDate(allDates[0][1], allDates[0][2], allDates[0][3]);
+                }
+                if(allDates.length > 1 && !document.getElementById('field-data-scadenza').value) {
+                    document.getElementById('field-data-scadenza').value = convertToInputDate(allDates[1][1], allDates[1][2], allDates[1][3]);
+                }
+            }
+
+            // 4. NOTE / PERIODO
             const periodoMatch = text.match(/periodo[^\n]*/i);
             if(periodoMatch) {
                 document.getElementById('field-note').value = periodoMatch[0];
@@ -706,7 +740,6 @@
         function salvaDocumento() {
             const ente = document.getElementById('field-ente').value;
             const importo = parseFloat(document.getElementById('field-importo').value);
-            const data = document.getElementById('field-data').value;
 
             if(!ente || isNaN(importo)) {
                 alert('Inserisci un ente/fornitore e un importo valido.');
@@ -719,7 +752,8 @@
                 ente: ente,
                 categoria: document.getElementById('field-categoria').value,
                 importo: importo,
-                data: data,
+                dataEmissione: document.getElementById('field-data-emissione').value,
+                dataScadenza: document.getElementById('field-data-scadenza').value,
                 note: document.getElementById('field-note').value,
                 stato: document.getElementById('field-stato').value
             };
@@ -743,7 +777,7 @@
             tbody.innerHTML = '';
 
             if(dbSpese.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8;">Nessun documento salvato nello scadenzario.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8;">Nessun documento salvato nello scadenzario.</td></tr>';
                 return;
             }
 
@@ -754,7 +788,8 @@
                     <td><b>${item.ente}</b></td>
                     <td>${item.categoria}</td>
                     <td><b>€ ${item.importo.toFixed(2)}</b></td>
-                    <td>${item.data || '-'}</td>
+                    <td>${item.dataEmissione || '-'}</td>
+                    <td>${item.dataScadenza || '-'}</td>
                     <td><span class="status-badge ${item.stato === 'Pagato' ? 'status-paid' : 'status-pending'}">${item.stato}</span></td>
                     <td><button class="btn-delete" onclick="eliminaSpesa(${item.id})">Elimina</button></td>
                 `;
