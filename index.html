@@ -271,6 +271,22 @@
             font-size: 0.95rem;
         }
 
+        /* FILTRI E SCADENZIARIO */
+        .filters-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filters-bar .form-group {
+            margin-bottom: 0;
+        }
+
         /* TABLE STYLES */
         table {
             width: 100%;
@@ -288,6 +304,20 @@
             background: #f8fafc;
             color: var(--text-muted);
             font-size: 0.85rem;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        th:hover {
+            background: #edf2f7;
+            color: var(--primary-color);
+        }
+
+        th.sort-active {
+            color: var(--primary-color);
+            font-weight: bold;
         }
 
         .status-badge {
@@ -557,20 +587,55 @@
             </div>
         </section>
 
-        <!-- SECTION 3: SCADENZIARIO -->
+        <!-- SECTION 3: SCADENZIARIO CON FILTRI ED ORDINAMENTO -->
         <section id="sec-scadenzario" class="page-section">
             <div class="card">
                 <h3>📅 Scadenzario & Archivio Spese</h3>
+                <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Filtra le voci o clicca sulle intestazioni della tabella per ordinare i dati.</p>
+
+                <!-- BARRA DEI FILTRI -->
+                <div class="filters-bar">
+                    <div class="form-group">
+                        <label>🔍 Cerca Fornitore / Note</label>
+                        <input type="text" id="filter-search" class="form-control" placeholder="Es. Octopus, Eurospin..." oninput="renderScadenzario()">
+                    </div>
+                    <div class="form-group">
+                        <label>📂 Categoria</label>
+                        <select id="filter-categoria" class="form-control" onchange="renderScadenzario()">
+                            <option value="ALL">Tutte le Categorie</option>
+                            <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
+                            <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
+                            <option value="Acqua">💧 Acqua</option>
+                            <option value="Internet / Telefono">🌐 Internet / Telefono</option>
+                            <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
+                            <option value="Altro">📦 Altro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📌 Stato</label>
+                        <select id="filter-stato" class="form-control" onchange="renderScadenzario()">
+                            <option value="ALL">Tutti gli Stati</option>
+                            <option value="Da Pagare">⏳ Da Pagare</option>
+                            <option value="Pagato">✅ Pagato</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>🗓️ Mese/Anno Scadenza</label>
+                        <input type="month" id="filter-mese-scadenza" class="form-control" onchange="renderScadenzario()">
+                    </div>
+                </div>
+
+                <!-- TABELLA SPESE -->
                 <table>
                     <thead>
                         <tr>
-                            <th>Tipo</th>
-                            <th>Fornitore</th>
-                            <th>Categoria</th>
-                            <th>Importo</th>
-                            <th>Data Emissione</th>
-                            <th>Data Scadenza</th>
-                            <th>Stato</th>
+                            <th onclick="sortTable('tipo')">Tipo <span id="sort-icon-tipo">↕</span></th>
+                            <th onclick="sortTable('ente')">Fornitore <span id="sort-icon-ente">↕</span></th>
+                            <th onclick="sortTable('categoria')">Categoria <span id="sort-icon-categoria">↕</span></th>
+                            <th onclick="sortTable('importo')">Importo <span id="sort-icon-importo">↕</span></th>
+                            <th onclick="sortTable('dataEmissione')">Data Emissione <span id="sort-icon-dataEmissione">↕</span></th>
+                            <th onclick="sortTable('dataScadenza')">Data Scadenza <span id="sort-icon-dataScadenza">↕</span></th>
+                            <th onclick="sortTable('stato')">Stato <span id="sort-icon-stato">↕</span></th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -659,6 +724,10 @@
         let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
+
+        // Stato Ordinamento Tabella
+        let sortColumn = 'dataScadenza';
+        let sortAscending = false;
 
         const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
@@ -1005,17 +1074,82 @@
             switchTab('scadenzario');
         }
 
-        // --- RENDER SCADENZARIO ---
+        // --- ORDINAMENTO TABELLA ---
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = column;
+                sortAscending = true;
+            }
+            renderScadenzario();
+        }
+
+        function updateSortIcons() {
+            const columns = ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'];
+            columns.forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (icon) {
+                    if (col === sortColumn) {
+                        icon.innerText = sortAscending ? '▲' : '▼';
+                    } else {
+                        icon.innerText = '↕';
+                    }
+                }
+            });
+        }
+
+        // --- RENDER SCADENZARIO (FILTRATO ED ORDINATO) ---
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             tbody.innerHTML = '';
 
-            if(dbSpese.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">Nessun documento registrato.</td></tr>`;
+            // 1. Lettura dei valori di filtro
+            const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
+            const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
+            const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
+            const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
+
+            // 2. Filtraggio dati
+            let filteredList = dbSpese.filter(item => {
+                const matchSearch = item.ente.toLowerCase().includes(searchVal) || (item.note && item.note.toLowerCase().includes(searchVal));
+                const matchCat = catVal === 'ALL' || item.categoria === catVal;
+                const matchStato = statoVal === 'ALL' || item.stato === statoVal;
+                
+                let matchMonth = true;
+                if (monthVal && item.dataScadenza) {
+                    matchMonth = item.dataScadenza.startsWith(monthVal);
+                }
+
+                return matchSearch && matchCat && matchStato && matchMonth;
+            });
+
+            // 3. Ordinamento dati
+            filteredList.sort((a, b) => {
+                let valA = a[sortColumn] || '';
+                let valB = b[sortColumn] || '';
+
+                if (sortColumn === 'importo') {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                } else {
+                    valA = valA.toString().toLowerCase();
+                    valB = valB.toString().toLowerCase();
+                }
+
+                if (valA < valB) return sortAscending ? -1 : 1;
+                if (valA > valB) return sortAscending ? 1 : -1;
+                return 0;
+            });
+
+            updateSortIcons();
+
+            if(filteredList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">Nessun documento corrisponde ai criteri di ricerca.</td></tr>`;
                 return;
             }
 
-            dbSpese.forEach(item => {
+            filteredList.forEach(item => {
                 const tr = document.createElement('tr');
                 const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
                 const tipoBadge = item.tipo === 'scontrino' ? '🧾 Scontrino' : '📄 Bolletta';
@@ -1076,6 +1210,7 @@
                 localStorage.setItem('family_budget_spese', JSON.stringify(dbSpese));
                 chiudiModalModifica();
                 renderScadenzario();
+                updateDashboard();
             }
         }
 
