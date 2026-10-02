@@ -33,7 +33,6 @@
       color: #333;
     }
 
-    /* Navbar Header */
     header {
       background: #ffffff;
       border-bottom: 1px solid var(--border-color);
@@ -68,7 +67,6 @@
       font-weight: 700;
     }
 
-    /* Main Container */
     .main-wrapper {
       max-width: 1200px;
       margin: 24px auto;
@@ -116,6 +114,7 @@
       background: #fff;
       cursor: pointer;
       font-weight: 600;
+      transition: all 0.2s ease;
     }
 
     .tab-btn.active {
@@ -124,7 +123,6 @@
       color: var(--accent-gold);
     }
 
-    /* Dropzone e Viewer */
     .dropzone {
       border: 2px dashed #cbd5e1;
       border-radius: 12px;
@@ -266,7 +264,6 @@
 </head>
 <body>
 
-  <!-- Navbar Principale -->
   <header>
     <div class="brand">🏠 FamilyBudget</div>
     <nav>
@@ -280,14 +277,14 @@
   <div class="main-wrapper">
     <div class="container">
       
-      <!-- Riquadro Sinistro: Caricamento e Preview -->
+      <!-- Riquadro Sinistro -->
       <div class="card">
         <h2>✨ Scanner AI Documenti</h2>
         <p class="subtitle">Carica una foto dello scontrino o una bolletta (PDF/Screenshot).</p>
 
         <div class="tab-group">
-          <button id="tabScontrino" class="tab-btn" onclick="switchDocType('scontrino', this)">🧾 Scontrino Spesa</button>
-          <button id="tabBolletta" class="tab-btn active" onclick="switchDocType('bolletta', this)">📑 Bolletta Utenza</button>
+          <button id="tabScontrino" type="button" class="tab-btn" onclick="switchDocType('scontrino')">🧾 Scontrino Spesa</button>
+          <button id="tabBolletta" type="button" class="tab-btn active" onclick="switchDocType('bolletta')">📑 Bolletta Utenza</button>
         </div>
 
         <div class="dropzone" id="dropzone">
@@ -308,10 +305,10 @@
         </button>
       </div>
 
-      <!-- Riquadro Destro: Form Dinamico -->
+      <!-- Riquadro Destro -->
       <div class="card">
         
-        <!-- Form Bolletta Utenza -->
+        <!-- Form Bolletta -->
         <div id="sectionBolletta">
           <div style="display:flex; align-items:center;">
             <h2>Verifica Dati Bolletta</h2>
@@ -361,7 +358,7 @@
           </form>
         </div>
 
-        <!-- Form Scontrino Spesa -->
+        <!-- Form Scontrino -->
         <div id="sectionScontrino" style="display:none;">
           <div style="display:flex; align-items:center;">
             <h2>Verifica Dati Scontrino</h2>
@@ -406,28 +403,33 @@
   <script>
     let currentDocType = 'bolletta';
     let currentFile = null;
+
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
 
-    // Cambia sezione (Bolletta / Scontrino)
-    function switchDocType(type, targetBtn) {
+    function switchDocType(type) {
       currentDocType = type;
       
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      targetBtn.classList.add('active');
+      const tabScontrino = document.getElementById('tabScontrino');
+      const tabBolletta = document.getElementById('tabBolletta');
+      const secBolletta = document.getElementById('sectionBolletta');
+      const secScontrino = document.getElementById('sectionScontrino');
 
       if (type === 'bolletta') {
-        document.getElementById('sectionBolletta').style.display = 'block';
-        document.getElementById('sectionScontrino').style.display = 'none';
+        tabBolletta.classList.add('active');
+        tabScontrino.classList.remove('active');
+        secBolletta.style.display = 'block';
+        secScontrino.style.display = 'none';
       } else {
-        document.getElementById('sectionBolletta').style.display = 'none';
-        document.getElementById('sectionScontrino').style.display = 'block';
+        tabScontrino.classList.add('active');
+        tabBolletta.classList.remove('active');
+        secBolletta.style.display = 'none';
+        secScontrino.style.display = 'block';
       }
 
       resetFile(null);
     }
 
-    /* DRAG & DROP EVENTI */
     dropzone.addEventListener('click', (e) => {
       if (e.target.closest('.btn-delete')) return;
       fileInput.click();
@@ -502,7 +504,6 @@
     }
 
     function resetFormFields() {
-      // Form Bolletta
       document.getElementById('fornitore').value = '';
       document.getElementById('tipoUtenza').value = 'Luce / Elettricità';
       document.getElementById('importo').value = '';
@@ -511,7 +512,6 @@
       document.getElementById('statoPagamento').value = 'Da Pagare';
       document.getElementById('statusBadgeBolletta').style.display = 'none';
 
-      // Form Scontrino
       document.getElementById('supermercato').value = '';
       document.getElementById('importoScontrino').value = '';
       document.getElementById('dataScontrino').value = '';
