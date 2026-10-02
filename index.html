@@ -829,6 +829,7 @@
         }
 
         function parseExtractedText(text) {
+            console.log("TEXT EXTRACTED:\n", text);
             const textLower = text.toLowerCase();
 
             // 1. FORNITORE & CATEGORIA
@@ -854,23 +855,49 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // 2. IMPORTO TOTALE
+            // 2. IMPORTO TOTALE (Logica avanzata multi-pattern & tollerante agli errori OCR)
             let importoTrovato = null;
 
-            const matchEuroDopo = text.match(/(\d+[.,]\d{2})\s*(?:€|euro)/i);
-            const matchEuroPrima = text.match(/(?:€|euro)\s*(\d+[.,]\d{2})/i);
-            const matchTestoTotale = text.match(/(?:dovrai pagare|totale|importo|scadenza|saldo)\s*[:\s]*€?\s*(\d+[.,]\d{2})/i);
+            // Pulisce errori comuni di OCR dove il simbolo € viene letto come 'e', 'c', 'E' attaccato ai numeri
+            // Esempio: "55,17€", "55,17 €", "55.17E", "55,17c"
+            
+            const regexes = [
+                // Pattern 1: Cifra seguita da €, euro, c, e (es: 55,17€ o 55.17 e)
+                /(\d{1,4}[.,' ]\d{2})\s*(?:€|euro|[eE]|c\b)/i,
+                // Pattern 2: Cifra vicino a frasi chiave (es: "dovrai pagare 55,17", "totale 55.17")
+                /(?:dovrai pagare|totale|importo|scadenza|saldo|pagare)\s*[:\s]*€?\s*(\d{1,4}[.,' ]\d{2})/i,
+                // Pattern 3: Simbolo € seguito da cifra (es: € 55,17)
+                /(?:€|euro)\s*(\d{1,4}[.,' ]\d{2})/i,
+                // Pattern 4: Qualsiasi numero decimale a due cifre isolato vicino a testo chiave
+                /(\d{1,4}[.,]\d{2})/g
+            ];
 
-            if (matchEuroDopo) {
-                importoTrovato = matchEuroDopo[1];
-            } else if (matchEuroPrima) {
-                importoTrovato = matchEuroPrima[1];
-            } else if (matchTestoTotale) {
-                importoTrovato = matchTestoTotale[1];
+            // Tenta le prime 3 regex mirate
+            for (let i = 0; i < 3; i++) {
+                const match = text.match(regexes[i]);
+                if (match) {
+                    importoTrovato = match[1];
+                    break;
+                }
+            }
+
+            // Fallback: Se ancora non trova, prende i decimali a 2 cifre escludendo le date
+            if (!importoTrovato) {
+                const matches = [...text.matchAll(regexes[3])];
+                for (const m of matches) {
+                    const valStr = m[1].replace(',', '.');
+                    const valNum = parseFloat(valStr);
+                    // Evita di scambiare numeri giorno/mese per importi se non plausibili
+                    if (!isNaN(valNum) && valNum > 0.99) {
+                        importoTrovato = m[1];
+                        break;
+                    }
+                }
             }
 
             if (importoTrovato) {
-                const importoClean = parseFloat(importoTrovato.replace(',', '.'));
+                // Normalizzazione: sostituisce virgole, apostrofi o spazi prima di convertire in Float
+                const importoClean = parseFloat(importoTrovato.replace(',', '.').replace("'", '.').replace(' ', '.'));
                 if (!isNaN(importoClean)) {
                     document.getElementById('field-importo').value = importoClean.toFixed(2);
                 }
