@@ -11,7 +11,10 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     
-    <!-- Chart.js per i grafici della Dashboard e Statistiche -->
+    <!-- Tesseract.js per OCR reale lato client -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- Chart.js per i grafici -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -90,7 +93,7 @@
             display: block;
         }
 
-        /* --- DASHBOARD STYLES --- */
+        /* DASHBOARD STYLES */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -132,7 +135,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
-        /* --- SCANNER AI STYLES --- */
+        /* SCANNER AI STYLES */
         .scanner-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -176,11 +179,12 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            transition: background 0.2s, border-color 0.2s;
         }
 
-        .drop-zone:hover {
+        .drop-zone.dragover {
             border-color: var(--primary-color);
-            background: #f8fafc;
+            background: #eef2ff;
         }
 
         #preview-container {
@@ -243,7 +247,7 @@
             font-size: 0.95rem;
         }
 
-        /* --- TABLE STYLES --- */
+        /* TABLE STYLES */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -289,6 +293,14 @@
             padding: 2px 8px;
             border-radius: 4px;
             float: right;
+        }
+
+        #loading-indicator {
+            display: none;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 8px;
         }
     </style>
 </head>
@@ -340,7 +352,6 @@
                             </tr>
                         </thead>
                         <tbody id="dash-recent-tbody">
-                            <!-- Popolato dinamicamente via JS -->
                         </tbody>
                     </table>
                 </div>
@@ -361,7 +372,7 @@
                         <div class="btn-type" id="type-bolletta" onclick="setDocType('bolletta')">📄 Bolletta Utenza</div>
                     </div>
 
-                    <div class="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
                         <div id="upload-prompt">
                             📄 <b>Trascina qui il documento</b> (PDF/Immagine)<br>
                             <span style="font-size:0.8rem; color:#94a3b8;">oppure clicca per selezionarlo</span>
@@ -370,7 +381,8 @@
                     </div>
                     <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
 
-                    <button class="btn-primary" onclick="analizzaConGemini()">✨ Analizza Documento con AI</button>
+                    <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza Documento con AI</button>
+                    <div id="loading-indicator">⏳ Analisi OCR del documento in corso...</div>
                 </div>
 
                 <!-- Right: Form Extraction -->
@@ -444,7 +456,6 @@
                         </tr>
                     </thead>
                     <tbody id="table-scadenzario-tbody">
-                        <!-- Popolato via JS -->
                     </tbody>
                 </table>
             </div>
@@ -461,17 +472,15 @@
     </div>
 
     <script>
-        // --- DATA STORE (LocalStorage) ---
         let dbSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
-
-        // Init Chart instance
         let chartDashInstance = null;
 
         window.onload = function() {
             updateDashboard();
             renderScadenzario();
+            setupDragAndDrop();
         };
 
         // --- NAVIGATION ---
@@ -496,7 +505,6 @@
             }
         }
 
-        // --- SCANNER MANAGEMENT ---
         function setDocType(type) {
             currentDocType = type;
             document.getElementById('type-scontrino').classList.toggle('active', type === 'scontrino');
@@ -511,10 +519,41 @@
             }
         }
 
+        // --- DRAG & DROP SUPPORT ---
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if(files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
         function handleFileSelect(event) {
             const file = event.target.files[0];
-            if(!file) return;
+            if(file) processFile(file);
+        }
 
+        function processFile(file) {
             const previewContainer = document.getElementById('preview-container');
             const uploadPrompt = document.getElementById('upload-prompt');
             previewContainer.innerHTML = '';
@@ -527,7 +566,7 @@
                     const typedarray = new Uint8Array(e.target.result);
                     pdfjsLib.getDocument(typedarray).promise.then(pdf => {
                         pdf.getPage(1).then(page => {
-                            const viewport = page.getViewport({ scale: 1.0 });
+                            const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
                             const context = canvas.getContext('2d');
                             canvas.height = viewport.height;
@@ -553,34 +592,79 @@
             }
         }
 
-        // --- REAL AI / TEXT EXTRACTION PARSER ---
-        function analizzaConGemini() {
+        // --- REAL OCR / TEXT EXTRACTION ---
+        async function analizzaConOCR() {
             if(!currentFileData) {
-                alert('Seleziona prima un file da analizzare!');
+                alert('Seleziona o trascina prima un file da analizzare!');
                 return;
             }
 
-            // Simulazione estrazione dinamica ed esatta dai dati letti (es. Argos 44,00 €)
-            document.getElementById('ai-status-badge').style.display = 'inline-block';
+            const loader = document.getElementById('loading-indicator');
+            const btnAnalyze = document.getElementById('btn-analyze');
+            loader.style.display = 'block';
+            btnAnalyze.disabled = true;
 
-            if(currentDocType === 'bolletta') {
-                document.getElementById('field-ente').value = 'Argos';
-                document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
-                document.getElementById('field-importo').value = '44.00';
-                document.getElementById('field-data').value = '2026-05-18';
-                document.getElementById('field-note').value = 'Periodo 01/03/2026 - 31/03/2026';
-                document.getElementById('field-stato').value = 'Da Pagare';
-            } else {
-                document.getElementById('field-ente').value = 'Supermercato';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-                document.getElementById('field-importo').value = '25.50';
-                document.getElementById('field-data').value = new Date().toISOString().split('T')[0];
-                document.getElementById('field-note').value = 'Scontrino spesa';
-                document.getElementById('field-stato').value = 'Pagato';
+            try {
+                const { data: { text } } = await Tesseract.recognize(currentFileData, 'ita');
+                loader.style.display = 'none';
+                btnAnalyze.disabled = false;
+                document.getElementById('ai-status-badge').style.display = 'inline-block';
+
+                parseExtractedText(text);
+            } catch(err) {
+                loader.style.display = 'none';
+                btnAnalyze.disabled = false;
+                alert('Errore durante la lettura del documento. Compila i dati manualmente.');
             }
         }
 
-        // --- SAVE DATA ---
+        function parseExtractedText(text) {
+            const cleanText = text.replace(/,/g, '.');
+
+            // Cerca importi con simbolo € o parole chiave TOTALE / PAGARE
+            let importoTrovato = null;
+            
+            // Regex per catturare "TOTALE DA PAGARE", "ENTRO IL", ecc.
+            const importoMatches = cleanText.match(/(?:totale|pagare|importo|euro|€)\s*[:\s]*€?\s*(\d+[\.\,]\d{2})/i) ||
+                                 cleanText.match(/€\s*(\d+[\.\,]\d{2})/i) ||
+                                 cleanText.match(/(\d+[\.\,]\d{2})\s*€/i);
+
+            if(importoMatches && importoMatches[1]) {
+                importoTrovato = parseFloat(importoMatches[1]);
+            }
+
+            if(importoTrovato) {
+                document.getElementById('field-importo').value = importoTrovato.toFixed(2);
+            }
+
+            // Rilevamento Fornitore (es. Argos)
+            if(/argos/i.test(text)) {
+                document.getElementById('field-ente').value = 'Argos';
+                document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
+            } else if(/enel/i.test(text)) {
+                document.getElementById('field-ente').value = 'Enel Utenze';
+                document.getElementById('field-categoria').value = 'Luce / Elettricità';
+            } else if(/eurospin|coop|conad|lidl|despar/i.test(text)) {
+                const matchEnte = text.match(/(eurospin|coop|conad|lidl|despar)/i);
+                if(matchEnte) document.getElementById('field-ente').value = matchEnte[0].toUpperCase();
+                document.getElementById('field-categoria').value = 'Spesa Alimentare';
+            }
+
+            // Rilevamento Date (formato DD/MM/YYYY)
+            const dateMatch = text.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
+            if(dateMatch) {
+                const formattedDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+                document.getElementById('field-data').value = formattedDate;
+            }
+
+            // Note/Periodo
+            const periodoMatch = text.match(/periodo[^\n]*/i);
+            if(periodoMatch) {
+                document.getElementById('field-note').value = periodoMatch[0];
+            }
+        }
+
+        // --- SAVE & RENDER ---
         function salvaDocumento() {
             const ente = document.getElementById('field-ente').value;
             const importo = parseFloat(document.getElementById('field-importo').value);
@@ -616,7 +700,6 @@
             updateDashboard();
         }
 
-        // --- RENDER TABLE & DASHBOARD ---
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             tbody.innerHTML = '';
