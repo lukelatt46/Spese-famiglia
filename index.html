@@ -506,7 +506,7 @@
 
                     <div class="form-group">
                         <label>Ente / Fornitore / Negozio</label>
-                        <input type="text" id="field-ente" class="form-control" placeholder="es. Argos, Eurospin">
+                        <input type="text" id="field-ente" class="form-control" placeholder="es. Argos, Eurospin, Octopus Energy">
                     </div>
 
                     <div class="form-group" id="group-categoria">
@@ -829,52 +829,71 @@
         }
 
         function parseExtractedText(text) {
-            const cleanText = text.replace(/,/g, '.');
+            const textLower = text.toLowerCase();
 
-            // 1. IMPORTI
-            let importoTrovato = null;
-            const importoMatches = cleanText.match(/(?:totale|pagare|importo|euro|€)\s*[:\s]*€?\s*(\d+[\.\,]\d{2})/i) ||
-                                   cleanText.match(/€\s*(\d+[\.\,]\d{2})/i) ||
-                                   cleanText.match(/(\d+[\.\,]\d{2})\s*€/i);
-
-            if(importoMatches && importoMatches[1]) {
-                importoTrovato = parseFloat(importoMatches[1]);
-            }
-            if(importoTrovato) {
-                document.getElementById('field-importo').value = importoTrovato.toFixed(2);
-            }
-
-            // 2. FORNITORE
-            if(/argos/i.test(text)) {
+            // 1. FORNITORE & CATEGORIA
+            if (/octopus/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Octopus Energy';
+                document.getElementById('field-categoria').value = 'Luce / Elettricità';
+            } else if (/argos/i.test(textLower)) {
                 document.getElementById('field-ente').value = 'Argos';
                 document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
-            } else if(/enel/i.test(text)) {
-                document.getElementById('field-ente').value = 'Enel Utenze';
+            } else if (/enel/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Enel';
                 document.getElementById('field-categoria').value = 'Luce / Elettricità';
-            } else if(/eurospin|coop|conad|lidl|despar/i.test(text)) {
-                const matchEnte = text.match(/(eurospin|coop|conad|lidl|despar)/i);
-                if(matchEnte) document.getElementById('field-ente').value = matchEnte[0].toUpperCase();
+            } else if (/plenitude|eni/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Eni Plenitude';
+            } else if (/edison/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Edison';
+            } else if (/servizio elettrico nazionale/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Servizio Elettrico Nazionale';
+                document.getElementById('field-categoria').value = 'Luce / Elettricità';
+            } else if (/eurospin|coop|conad|lidl|despar|carrefour|esselunga/i.test(textLower)) {
+                const matchEnte = text.match(/(eurospin|coop|conad|lidl|despar|carrefour|esselunga)/i);
+                if (matchEnte) document.getElementById('field-ente').value = matchEnte[0].toUpperCase();
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // 3. DATE (EMISSIONE VS SCADENZA)
-            const matchScadenza = text.match(/(?:entro il|scadenza|scad\.)\s*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
-            if(matchScadenza) {
+            // 2. IMPORTO TOTALE
+            let importoTrovato = null;
+
+            const matchEuroDopo = text.match(/(\d+[.,]\d{2})\s*(?:€|euro)/i);
+            const matchEuroPrima = text.match(/(?:€|euro)\s*(\d+[.,]\d{2})/i);
+            const matchTestoTotale = text.match(/(?:dovrai pagare|totale|importo|scadenza|saldo)\s*[:\s]*€?\s*(\d+[.,]\d{2})/i);
+
+            if (matchEuroDopo) {
+                importoTrovato = matchEuroDopo[1];
+            } else if (matchEuroPrima) {
+                importoTrovato = matchEuroPrima[1];
+            } else if (matchTestoTotale) {
+                importoTrovato = matchTestoTotale[1];
+            }
+
+            if (importoTrovato) {
+                const importoClean = parseFloat(importoTrovato.replace(',', '.'));
+                if (!isNaN(importoClean)) {
+                    document.getElementById('field-importo').value = importoClean.toFixed(2);
+                }
+            }
+
+            // 3. DATE (EMISSIONE E SCADENZA)
+            const matchScadenza = text.match(/(?:entro il|scadenza|scad\.|entro)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
+            if (matchScadenza) {
                 document.getElementById('field-data-scadenza').value = convertToInputDate(matchScadenza[1], matchScadenza[2], matchScadenza[3]);
             }
 
-            const matchEmissione = text.match(/(?:data fattura|data emiss|del|emessa il)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
-            if(matchEmissione) {
+            const matchEmissione = text.match(/(?:data fattura|data emiss|del|emessa il|data:)\s*[:\s]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
+            if (matchEmissione) {
                 document.getElementById('field-data-emissione').value = convertToInputDate(matchEmissione[1], matchEmissione[2], matchEmissione[3]);
             }
 
-            // Fallback date
+            // Fallback date generiche
             const allDates = [...text.matchAll(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g)];
-            if(allDates.length > 0) {
-                if(!document.getElementById('field-data-emissione').value) {
+            if (allDates.length > 0) {
+                if (!document.getElementById('field-data-emissione').value) {
                     document.getElementById('field-data-emissione').value = convertToInputDate(allDates[0][1], allDates[0][2], allDates[0][3]);
                 }
-                if(allDates.length > 1 && !document.getElementById('field-data-scadenza').value) {
+                if (allDates.length > 1 && !document.getElementById('field-data-scadenza').value) {
                     document.getElementById('field-data-scadenza').value = convertToInputDate(allDates[1][1], allDates[1][2], allDates[1][3]);
                 }
             }
@@ -1032,11 +1051,10 @@
             renderDashboardChart();
         }
 
-        // --- CHARTS (CORRETTO: ANDAMENTO NEL TEMPO PER MESE) ---
+        // --- CHARTS (ANDAMENTO NEL TEMPO PER MESE) ---
         function renderDashboardChart() {
             const ctx = document.getElementById('chartDashboard').getContext('2d');
             
-            // Raggruppa le spese per Mese / Anno
             const monthlyTotals = {};
 
             dbSpese.forEach(item => {
@@ -1055,7 +1073,6 @@
                 }
             });
 
-            // Ordina i mesi in ordine cronologico
             const sortedKeys = Object.keys(monthlyTotals).sort();
             const labels = sortedKeys.map(k => monthlyTotals[k].label);
             const data = sortedKeys.map(k => monthlyTotals[k].amount);
