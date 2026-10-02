@@ -449,7 +449,7 @@
 
             <div class="dashboard-grid">
                 <div class="card">
-                    <h3>Andamento Spese</h3>
+                    <h3>Andamento Spese Mensili</h3>
                     <canvas id="chartDashboard" height="140"></canvas>
                 </div>
                 <div class="card">
@@ -583,7 +583,7 @@
         <!-- SECTION 4: STATISTICHE -->
         <section id="sec-statistiche" class="page-section">
             <div class="card">
-                <h3>📊 Statistiche di Spesa</h3>
+                <h3>📊 Ripartizione Spese per Categoria</h3>
                 <canvas id="chartStatistiche" height="100"></canvas>
             </div>
         </section>
@@ -658,6 +658,8 @@
         let currentFileData = null;
         let chartDashInstance = null;
         let chartStatInstance = null;
+
+        const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
         window.onload = function() {
             updateDashboard();
@@ -1030,31 +1032,64 @@
             renderDashboardChart();
         }
 
-        // --- CHARTS ---
+        // --- CHARTS (CORRETTO: ANDAMENTO NEL TEMPO PER MESE) ---
         function renderDashboardChart() {
             const ctx = document.getElementById('chartDashboard').getContext('2d');
             
-            const categories = {};
+            // Raggruppa le spese per Mese / Anno
+            const monthlyTotals = {};
+
             dbSpese.forEach(item => {
-                categories[item.categoria] = (categories[item.categoria] || 0) + item.importo;
+                const dateRef = item.dataEmissione || item.dataScadenza;
+                if(dateRef) {
+                    const d = new Date(dateRef);
+                    if(!isNaN(d.getTime())) {
+                        const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        if(!monthlyTotals[key]) {
+                            monthlyTotals[key] = { label: monthLabel, amount: 0 };
+                        }
+                        monthlyTotals[key].amount += item.importo;
+                    }
+                }
             });
+
+            // Ordina i mesi in ordine cronologico
+            const sortedKeys = Object.keys(monthlyTotals).sort();
+            const labels = sortedKeys.map(k => monthlyTotals[k].label);
+            const data = sortedKeys.map(k => monthlyTotals[k].amount);
 
             if(chartDashInstance) chartDashInstance.destroy();
 
             chartDashInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(categories).length ? Object.keys(categories) : ['Nessun Dato'],
+                    labels: labels.length ? labels : ['Nessun Dato'],
                     datasets: [{
-                        label: 'Spesa Totale (€)',
-                        data: Object.keys(categories).length ? Object.values(categories) : [0],
+                        label: 'Totale Speso (€)',
+                        data: data.length ? data : [0],
                         backgroundColor: '#5142e6',
                         borderRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { display: false } }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Speso: € ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
