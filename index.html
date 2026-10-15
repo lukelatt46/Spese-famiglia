@@ -27,7 +27,6 @@
             getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
         } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-        // CONFIGURAZIONE FIREBASE INSERITA
         const firebaseConfig = {
             apiKey: "AIzaSyA9c70nooXFxR-_OXd7ALySvz4riJInqyo",
             authDomain: "familybudget-ec80c.firebaseapp.com",
@@ -38,7 +37,6 @@
             measurementId: "G-Z921C02Q66"
         };
 
-        // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -50,7 +48,6 @@
             collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
         };
 
-        // Ascolta stato di login
         onAuthStateChanged(auth, (user) => {
             const authSection = document.getElementById('auth-section');
             const appContent = document.getElementById('app-content');
@@ -83,7 +80,6 @@
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
         body { background-color: var(--bg-color); color: var(--text-color); }
 
-        /* SCHERMATA LOGIN */
         #auth-section {
             min-height: 100vh;
             display: flex;
@@ -171,7 +167,6 @@
         .status-paid { background: #dcfce7; color: #166534; }
 
         .btn-actions-container { display: flex; gap: 6px; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
         .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
 
         .items-table-container { margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: #f8fafc; }
@@ -520,272 +515,13 @@
 
         // SINCRONIZZAZIONE REAL-TIME FIREBASE
         function inizializzaSincronizzazioneCloud() {
-            const { collection, onSnapshot, query, orderBy } = window.fbMethods;
+            const { collection, onSnapshot } = window.fbMethods;
             
-            // Sync Spese
             onSnapshot(collection(window.fbDb, "spese"), (snapshot) => {
                 dbSpese = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
                 updateDashboard();
                 renderScadenzario();
             });
 
-            // Sync Articoli
             onSnapshot(collection(window.fbDb, "articoli"), (snapshot) => {
-                dbArticoli = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
-                renderAnalisiArticoli();
-                updateDashboard();
-            });
-        }
-
-        async function salvaDocumentoCloud() {
-            const ente = document.getElementById('field-ente').value.trim();
-            const importo = parseFloat(document.getElementById('field-importo').value);
-            const dataScadenza = document.getElementById('field-data-scadenza').value;
-
-            if(!ente || isNaN(importo)) {
-                alert('Inserisci almeno fornitore e importo.');
-                return;
-            }
-
-            const { collection, addDoc } = window.fbMethods;
-            const docRef = await addDoc(collection(window.fbDb, "spese"), {
-                tipo: currentDocType,
-                ente: ente,
-                categoria: document.getElementById('field-categoria').value,
-                importo: importo,
-                dataEmissione: document.getElementById('field-data-emissione').value,
-                dataScadenza: dataScadenza,
-                stato: document.getElementById('field-stato').value,
-                createdAt: new Date().toISOString()
-            });
-
-            if (currentDocType === 'scontrino') {
-                const rows = document.querySelectorAll('#tbody-articoli-scontrino tr');
-                for(let r of rows) {
-                    const nome = r.querySelector('.item-name')?.value.trim();
-                    const macro = r.querySelector('.item-macro')?.value;
-                    const prezzo = parseFloat(r.querySelector('.item-price')?.value);
-
-                    if (nome && !isNaN(prezzo)) {
-                        await addDoc(collection(window.fbDb, "articoli"), {
-                            spesaId: docRef.id,
-                            data: dataScadenza || new Date().toISOString().split('T')[0],
-                            nome: nome,
-                            macroArea: macro,
-                            prezzo: prezzo
-                        });
-                    }
-                }
-            }
-
-            alert('Salvato nel Cloud con successo!');
-            switchTab('scadenzario');
-        }
-
-        async function eliminaDocumento(idDoc) {
-            if(confirm('Eliminare questo documento dal Cloud?')) {
-                const { doc, deleteDoc } = window.fbMethods;
-                await deleteDoc(doc(window.fbDb, "spese", idDoc));
-            }
-        }
-
-        function formatDateToIT(dateString) {
-            if (!dateString) return '-';
-            const parts = dateString.split('-');
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            return dateString;
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-
-            const idx = ['dashboard', 'scanner', 'articoli', 'scadenzario', 'statistiche'].indexOf(tabName);
-            if(idx !== -1) {
-                document.querySelectorAll('.nav-link')[idx].classList.add('active');
-                document.getElementById(`sec-${tabName}`).classList.add('active');
-                if(tabName === 'dashboard') updateDashboard();
-                if(tabName === 'articoli') renderAnalisiArticoli();
-                if(tabName === 'scadenzario') renderScadenzario();
-                if(tabName === 'statistiche') renderStatistiche();
-            }
-        }
-
-        function setDocType(type) {
-            currentDocType = type;
-            document.getElementById('type-scontrino').classList.toggle('active', type === 'scontrino');
-            document.getElementById('type-bolletta').classList.toggle('active', type === 'bolletta');
-            document.getElementById('container-dettaglio-articoli').style.display = (type === 'scontrino') ? 'block' : 'none';
-        }
-
-        function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '') {
-            const tbody = document.getElementById('tbody-articoli-scontrino');
-            if (!tbody) return;
-            const tr = document.createElement('tr');
-            let options = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
-
-            tr.innerHTML = `
-                <td><input type="text" class="item-name" placeholder="es. Latte" value="${nome}"></td>
-                <td><select class="item-macro">${options}</select></td>
-                <td><input type="number" step="0.01" class="item-price" placeholder="0.00" value="${prezzo}"></td>
-                <td><button type="button" onclick="this.closest('tr').remove()" style="background:none; border:none; color:red; cursor:pointer;">✖</button></td>
-            `;
-            tbody.appendChild(tr);
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if(file) processFile(file);
-        }
-
-        function processFile(file) {
-            const previewContainer = document.getElementById('preview-container');
-            document.getElementById('upload-prompt').style.display = 'none';
-            previewContainer.style.display = 'block';
-            previewContainer.innerHTML = '';
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                if (file.type === 'application/pdf') {
-                    const typedarray = new Uint8Array(e.target.result);
-                    pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                        pdf.getPage(1).then(page => {
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
-                            page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-                                previewContainer.appendChild(canvas);
-                                currentFileData = canvas.toDataURL('image/png');
-                            });
-                        });
-                    });
-                } else {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    previewContainer.appendChild(img);
-                    currentFileData = e.target.result;
-                }
-            };
-            if (file.type === 'application/pdf') reader.readAsArrayBuffer(file);
-            else reader.readAsDataURL(file);
-        }
-
-        async function analizzaConOCR() {
-            if(!currentFileData) return alert('Carica un file prima.');
-            const loader = document.getElementById('loading-indicator');
-            loader.style.display = 'block';
-
-            try {
-                const { data: { text } } = await Tesseract.recognize(currentFileData, 'ita');
-                loader.style.display = 'none';
-                document.getElementById('ai-status-badge').style.display = 'inline-block';
-                parseExtractedText(text);
-            } catch(e) {
-                loader.style.display = 'none';
-                alert('Errore lettura OCR');
-            }
-        }
-
-        function parseExtractedText(text) {
-            if (!text) return;
-            const matchTot = text.match(/(?:totale|importo)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i);
-            if (matchTot) document.getElementById('field-importo').value = parseFloat(matchTot[1].replace(',', '.')).toFixed(2);
-
-            const matchDate = text.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
-            if (matchDate) {
-                const iso = `${matchDate[3]}-${matchDate[2]}-${matchDate[1]}`;
-                document.getElementById('field-data-scadenza').value = iso;
-                document.getElementById('field-data-emissione').value = iso;
-            }
-        }
-
-        function renderScadenzario() {
-            const tbody = document.getElementById('table-scadenzario-tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
-            const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
-            const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
-            const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
-
-            let filteredList = dbSpese.filter(item => {
-                const matchSearch = (item.ente || '').toLowerCase().includes(searchVal);
-                const matchCat = catVal === 'ALL' || item.categoria === catVal;
-                const matchStato = statoVal === 'ALL' || item.stato === statoVal;
-                let matchMonth = true;
-                if (monthVal && item.dataScadenza) matchMonth = item.dataScadenza.startsWith(monthVal);
-                return matchSearch && matchCat && matchStato && matchMonth;
-            });
-
-            const total = filteredList.reduce((s, i) => s + (parseFloat(i.importo) || 0), 0);
-            document.getElementById('filtered-count').innerText = filteredList.length;
-            document.getElementById('filtered-total-amount').innerText = `€ ${total.toFixed(2)}`;
-            document.getElementById('tfoot-total-amount').innerHTML = `<b>€ ${total.toFixed(2)}</b>`;
-
-            filteredList.forEach(item => {
-                const tr = document.createElement('tr');
-                const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
-                tr.innerHTML = `
-                    <td>${item.tipo === 'scontrino' ? '🧾 Scontrino' : '📄 Bolletta'}</td>
-                    <td><b>${item.ente}</b></td>
-                    <td>${item.categoria}</td>
-                    <td><b>€ ${parseFloat(item.importo).toFixed(2)}</b></td>
-                    <td>${formatDateToIT(item.dataEmissione)}</td>
-                    <td>${formatDateToIT(item.dataScadenza)}</td>
-                    <td><span class="status-badge ${badgeClass}">${item.stato}</span></td>
-                    <td>
-                        <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderAnalisiArticoli() {
-            const tbody = document.getElementById('tbody-frequenza-articoli');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            const stats = {};
-            dbArticoli.forEach(art => {
-                const key = art.nome.toLowerCase();
-                if (!stats[key]) stats[key] = { nome: art.nome, macroArea: art.macroArea, conteggio: 0, spesaTotale: 0 };
-                stats[key].conteggio += 1;
-                stats[key].spesaTotale += art.prezzo;
-            });
-
-            Object.values(stats).sort((a,b) => b.conteggio - a.conteggio).forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><b>${item.nome}</b></td>
-                    <td>${item.macroArea}</td>
-                    <td><span class="status-badge status-paid">${item.conteggio} volte</span></td>
-                    <td><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function updateDashboard() {
-            let totalMonth = 0, totalPending = 0;
-            const now = new Date();
-
-            dbSpese.forEach(item => {
-                const d = new Date(item.dataEmissione || item.dataScadenza);
-                if(d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) totalMonth += item.importo;
-                if(item.stato === 'Da Pagare') totalPending += item.importo;
-            });
-
-            document.getElementById('dash-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
-            document.getElementById('dash-pending-total').innerText = `€ ${totalPending.toFixed(2)}`;
-            document.getElementById('dash-docs-count').innerText = dbSpese.length;
-            document.getElementById('dash-items-count').innerText = dbArticoli.length;
-        }
-
-        function renderStatistiche() {}
-    </script>
-</body>
-</html>
+                dbArticoli = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data
