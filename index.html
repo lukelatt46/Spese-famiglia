@@ -27,7 +27,6 @@
             getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
         } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-        // CONFIGURAZIONE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyA9c70nooXFxR-_OXd7ALySvz4riJInqyo",
             authDomain: "familybudget-ec80c.firebaseapp.com",
@@ -49,7 +48,6 @@
             collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
         };
 
-        // Ascolta stato autenticazione
         onAuthStateChanged(auth, (user) => {
             const authSection = document.getElementById('auth-section');
             const appContent = document.getElementById('app-content');
@@ -168,7 +166,13 @@
         .status-pending { background: #fef3c7; color: #92400e; }
         .status-paid { background: #dcfce7; color: #166534; }
 
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-actions-container { display: flex; gap: 6px; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-backdrop.active { display: flex; }
+        .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
 
         .items-table-container { margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: #f8fafc; }
         .items-table-container h4 { font-size: 0.9rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
@@ -188,7 +192,7 @@
 </head>
 <body>
 
-    <!-- SCHERMATA LOGIN / REGISTRAZIONE CLOUD -->
+    <!-- LOGIN CLOUD -->
     <div id="auth-section">
         <div class="auth-card">
             <h2>🏠 FamilyBudget Cloud</h2>
@@ -209,7 +213,7 @@
         </div>
     </div>
 
-    <!-- APPLICAZIONE PRINCIPALE -->
+    <!-- APP PRINCIPALE -->
     <div id="app-content" style="display:none;">
         <header>
             <div class="brand">🏠 FamilyBudget Cloud</div>
@@ -294,7 +298,7 @@
 
                         <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza Documento con AI</button>
                         <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo Documento</button>
-                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.9rem; margin-top:8px;">⏳ Analisi OCR del documento in corso...</div>
+                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.9rem; margin-top:8px;">⏳ Analisi OCR in corso...</div>
                     </div>
 
                     <div class="card">
@@ -400,8 +404,12 @@
             <!-- SCADENZIARIO -->
             <section id="sec-scadenzario" class="page-section">
                 <div class="card">
-                    <h3>📅 Scadenzario & Archivio Spese Cloud</h3>
-                    <div class="filters-bar">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>📅 Scadenzario & Archivio Spese Cloud</h3>
+                        <button class="btn-secondary btn-sm" onclick="importaDatiLocaliNelCloud()" style="width:auto;">📥 Sincronizza Vecchi Dati Locali</button>
+                    </div>
+                    
+                    <div class="filters-bar" style="margin-top: 12px;">
                         <div class="form-group">
                             <label>🔍 Cerca Fornitore</label>
                             <input type="text" id="filter-search" class="form-control" placeholder="Es. Octopus..." oninput="renderScadenzario()">
@@ -474,6 +482,63 @@
         </div>
     </div>
 
+    <!-- MODALE MODIFICA CLOUD -->
+    <div id="modal-edit" class="modal-backdrop">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3>✏️ Modifica Documento</h3>
+                <button onclick="chiudiModalModifica()" style="border:none; background:none; font-size:1.4rem; cursor:pointer;">&times;</button>
+            </div>
+            <input type="hidden" id="edit-idDoc">
+
+            <div class="form-group">
+                <label>Fornitore / Ente</label>
+                <input type="text" id="edit-ente" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Categoria</label>
+                <select id="edit-categoria" class="form-control">
+                    <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
+                    <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
+                    <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
+                    <option value="Acqua">💧 Acqua</option>
+                    <option value="Internet / Telefono">🌐 Internet / Telefono</option>
+                    <option value="Altro">📦 Altro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Importo (€)</label>
+                <input type="number" step="0.01" id="edit-importo" class="form-control">
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Data Emissione</label>
+                    <input type="date" id="edit-data-emissione" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Data Scadenza</label>
+                    <input type="date" id="edit-data-scadenza" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Stato Pagamento</label>
+                <select id="edit-stato" class="form-control">
+                    <option value="Pagato">✅ Pagato</option>
+                    <option value="Da Pagare">⏳ Da Pagare</option>
+                </select>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="btn-secondary" style="width:auto;" onclick="chiudiModalModifica()">Annulla</button>
+                <button class="btn-primary" style="width:auto; margin-top:0;" onclick="salvaModificaCloud()">Salva Modifiche</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let dbSpese = [];
         let dbArticoli = [];
@@ -489,7 +554,6 @@
         const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Altro'];
         const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
-        // AUTENTICAZIONE FIREBASE REALTIME
         async function handleLogin() {
             const e = document.getElementById('login-email').value;
             const p = document.getElementById('login-password').value;
@@ -514,7 +578,6 @@
             window.fbMethods.signOut(window.fbAuth);
         }
 
-        // DATABASE SINCRONIZZATO IN TEMPO REALE
         function inizializzaSincronizzazioneCloud() {
             const { collection, onSnapshot } = window.fbMethods;
             
@@ -529,6 +592,33 @@
                 renderAnalisiArticoli();
                 updateDashboard();
             });
+        }
+
+        async function importaDatiLocaliNelCloud() {
+            try {
+                const vecchieSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
+                if (vecchieSpese.length === 0) {
+                    alert('Nessun dato locale da importare.');
+                    return;
+                }
+
+                const { collection, addDoc } = window.fbMethods;
+                for (let spesa of vecchieSpese) {
+                    await addDoc(collection(window.fbDb, "spese"), {
+                        tipo: spesa.tipo || 'bolletta',
+                        ente: spesa.ente || '',
+                        categoria: spesa.categoria || 'Altro',
+                        importo: parseFloat(spesa.importo) || 0,
+                        dataEmissione: spesa.dataEmissione || '',
+                        dataScadenza: spesa.dataScadenza || '',
+                        stato: spesa.stato || 'Pagato',
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                alert(`${vecchieSpese.length} elementi locali trasferiti nel Cloud!`);
+            } catch(e) {
+                alert('Errore durante il trasferimento dati.');
+            }
         }
 
         async function salvaDocumentoCloud() {
@@ -574,6 +664,42 @@
 
             alert('Salvato nel Cloud con successo!');
             switchTab('scadenzario');
+        }
+
+        function apriModalModifica(idDoc) {
+            const item = dbSpese.find(d => d.idDoc === idDoc);
+            if(!item) return;
+
+            document.getElementById('edit-idDoc').value = item.idDoc;
+            document.getElementById('edit-ente').value = item.ente;
+            document.getElementById('edit-categoria').value = item.categoria;
+            document.getElementById('edit-importo').value = item.importo;
+            document.getElementById('edit-data-emissione').value = item.dataEmissione || '';
+            document.getElementById('edit-data-scadenza').value = item.dataScadenza || '';
+            document.getElementById('edit-stato').value = item.stato;
+
+            document.getElementById('modal-edit').classList.add('active');
+        }
+
+        function chiudiModalModifica() {
+            document.getElementById('modal-edit').classList.remove('active');
+        }
+
+        async function salvaModificaCloud() {
+            const idDoc = document.getElementById('edit-idDoc').value;
+            const { doc, updateDoc } = window.fbMethods;
+
+            await updateDoc(doc(window.fbDb, "spese", idDoc), {
+                ente: document.getElementById('edit-ente').value.trim(),
+                categoria: document.getElementById('edit-categoria').value,
+                importo: parseFloat(document.getElementById('edit-importo').value) || 0,
+                dataEmissione: document.getElementById('edit-data-emissione').value,
+                dataScadenza: document.getElementById('edit-data-scadenza').value,
+                stato: document.getElementById('edit-stato').value
+            });
+
+            chiudiModalModifica();
+            alert('Modifica salvata nel Cloud!');
         }
 
         async function eliminaDocumento(idDoc) {
@@ -721,7 +847,7 @@
 
         async function analizzaConOCR() {
             if(!currentFileData) {
-                alert('Seleziona un file prima!');
+                alert('Seleziona prima un file!');
                 return;
             }
 
@@ -761,13 +887,11 @@
             return 'Altro';
         }
 
-        // PARSER OCR OTTIMIZZATO (PER ARGOS E OCTOPUS)
         function parseExtractedText(text) {
             if (!text) return;
             const textLower = text.toLowerCase();
             const lines = text.split('\n');
 
-            // 1. Ente
             if (/octopus/i.test(textLower)) {
                 document.getElementById('field-ente').value = 'Octopus Energy';
                 document.getElementById('field-categoria').value = 'Luce / Elettricità';
@@ -788,7 +912,6 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // 2. Importo Totale Prioritizzato
             const matchTotEsplicito = text.match(/(?:totale da pagare|totale bolletta|dovrai pagare)\s*[:\s]*€?\s*=?\s*(\d{1,4}[\.,]\d{2})/i);
             if (matchTotEsplicito) {
                 document.getElementById('field-importo').value = parseFloat(matchTotEsplicito[1].replace(',', '.')).toFixed(2);
@@ -799,7 +922,6 @@
                 }
             }
 
-            // 3. Date
             const matchDataFattura = text.match(/data fattura\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
             const matchScadenza = text.match(/(?:entro il|scadenza|scadenza pagamento)\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
 
@@ -821,7 +943,6 @@
                 }
             }
 
-            // 4. Scontrini
             if (currentDocType === 'scontrino') {
                 const tbody = document.getElementById('tbody-articoli-scontrino');
                 if (tbody) {
@@ -916,7 +1037,10 @@
                     <td>${formatDateToIT(item.dataScadenza)}</td>
                     <td><span class="status-badge ${badgeClass}">${item.stato}</span></td>
                     <td>
-                        <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️</button>
+                        <div class="btn-actions-container">
+                            <button class="btn-edit" onclick="apriModalModifica('${item.idDoc}')">✏️</button>
+                            <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️</button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
