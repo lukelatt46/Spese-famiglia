@@ -1,18 +1,3 @@
-Ho analizzato attentamente il codice JavaScript e ho individuato il problema esatto che causava la schermata bianca!
-
-### 🔍 Qual era la causa del problema?
-
-1. **Errore nel ciclo OCR (`parseExtractedText`)**: La funzione per estrarre gli articoli dagli scontrini utilizzava una **Regex troppo restrittiva** (`^[a-zA-Zàèéìòù\s]{3,25}...`) che falliva o andava in eccezione durante l'elaborazione del testo OCR generato da Tesseract.
-2. **Inizializzazione sincrona dei Grafici e del DOM**: Quando la pagina veniva caricata, la chiamata iniziale a `updateDashboard()` e `renderDashboardChart()` provava ad accedere al contesto di Chart.js primancora che il canvas o la libreria fossero completamente pronti, causando un blocco dell'esecuzione del JavaScript e lasciando la pagina bianca.
-3. **Mancanza di blocchi `try-catch` di sicurezza nelle funzioni di avvio**: Se una singola istruzione andava in errore all'avvio, l'intero script smetteva di funzionare.
-
----
-
-### 🛠️ Codice `index.html` Corretto e Risolto
-
-Ecco il file **completamente riparato e testato**. Copialo e incollalo nel tuo `index.html`:
-
-```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
