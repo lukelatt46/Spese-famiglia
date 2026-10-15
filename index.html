@@ -292,12 +292,39 @@
             background: #f8fafc;
             padding: 16px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             border: 1px solid var(--border-color);
         }
 
         .filters-bar .form-group {
             margin-bottom: 0;
+        }
+
+        /* RIQUADRO SOMMARIO TOTALE VISUALIZZATO */
+        .summary-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+        }
+
+        .summary-box .info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: #3730a3;
+            font-weight: 600;
+        }
+
+        .summary-box .total-amount {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary-color);
         }
 
         .table-responsive {
@@ -330,6 +357,13 @@
         th:hover {
             background: #edf2f7;
             color: var(--primary-color);
+        }
+
+        tfoot td {
+            background: #f8fafc;
+            font-weight: bold;
+            font-size: 0.95rem;
+            border-top: 2px solid var(--border-color);
         }
 
         .status-badge {
@@ -663,7 +697,7 @@
             </div>
         </section>
 
-        <!-- SECTION 4: SCADENZIARIO -->
+        <!-- SECTION 4: SCADENZIARIO CON RIQUADRO TOTALE DINAMICO -->
         <section id="sec-scadenzario" class="page-section">
             <div class="card">
                 <h3>📅 Scadenzario & Archivio Spese</h3>
@@ -700,6 +734,14 @@
                     </div>
                 </div>
 
+                <!-- RIQUADRO TOTALE DINAMICO -->
+                <div class="summary-box">
+                    <div class="info">
+                        💰 <span>Totale Voci Visualizzate (<span id="filtered-count">0</span> elementi)</span>
+                    </div>
+                    <div class="total-amount" id="filtered-total-amount">€ 0,00</div>
+                </div>
+
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -716,6 +758,13 @@
                         </thead>
                         <tbody id="table-scadenzario-tbody">
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right;"><b>Totale Importo:</b></td>
+                                <td id="tfoot-total-amount"><b>€ 0,00</b></td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -1234,6 +1283,17 @@
 
                 return matchSearch && matchCat && matchStato && matchMonth;
             });
+
+            // CALCOLO SOMMA IMPORTO VOCI VISUALIZZATE
+            const totalImportoFiltered = filteredList.reduce((sum, item) => sum + (parseFloat(item.importo) || 0), 0);
+
+            const elCount = document.getElementById('filtered-count');
+            const elTotalAmount = document.getElementById('filtered-total-amount');
+            const elFootTotalAmount = document.getElementById('tfoot-total-amount');
+
+            if (elCount) elCount.innerText = filteredList.length;
+            if (elTotalAmount) elTotalAmount.innerText = `€ ${totalImportoFiltered.toFixed(2)}`;
+            if (elFootTotalAmount) elFootTotalAmount.innerHTML = `<b>€ ${totalImportoFiltered.toFixed(2)}</b>`;
 
             filteredList.sort((a, b) => {
                 let valA = a[sortColumn] || '';
