@@ -1187,6 +1187,7 @@
             return 'Altro';
         }
 
+        // PARSER OCR OTTIMIZZATO E PRIORITIZZATO
         function parseExtractedText(text) {
             if (!text) return;
             const textLower = text.toLowerCase();
@@ -1213,24 +1214,37 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            // 2. Riconoscimento Importo Totale (compreso Octopus)
-            const matchTot = text.match(/(?:dovrai pagare|totale|importo|saldo|totale da pagare)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i) ||
-                             text.match(/(\d{1,4}[\.,]\d{2})\s*€/i);
-            if (matchTot) {
-                document.getElementById('field-importo').value = parseFloat(matchTot[1].replace(',', '.')).toFixed(2);
+            // 2. Riconoscimento Importo Totale Prioritizzato
+            const matchTotEsplicito = text.match(/(?:totale da pagare|totale bolletta|dovrai pagare)\s*[:\s]*€?\s*=?\s*(\d{1,4}[\.,]\d{2})/i);
+            if (matchTotEsplicito) {
+                document.getElementById('field-importo').value = parseFloat(matchTotEsplicito[1].replace(',', '.')).toFixed(2);
+            } else {
+                const matchGeneric = text.match(/(?:totale|importo|saldo)\s*[:\s]*€?\s*(\d{1,4}[\.,]\d{2})/i) || text.match(/(\d{1,4}[\.,]\d{2})\s*€/i);
+                if (matchGeneric) {
+                    document.getElementById('field-importo').value = parseFloat(matchGeneric[1].replace(',', '.')).toFixed(2);
+                }
             }
 
             // 3. Riconoscimento Date (Emissione e Scadenza)
-            const datesFound = [];
-            const regexDate = /(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g;
-            let matchDate;
-            while ((matchDate = regexDate.exec(text)) !== null) {
-                datesFound.push(convertToInputDate(matchDate[1], matchDate[2], matchDate[3]));
-            }
+            const matchDataFattura = text.match(/data fattura\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
+            const matchScadenza = text.match(/(?:entro il|scadenza|scadenza pagamento)\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
 
-            if (datesFound.length > 0) {
-                document.getElementById('field-data-scadenza').value = datesFound[0];
-                document.getElementById('field-data-emissione').value = datesFound[datesFound.length - 1] || datesFound[0];
+            if (matchDataFattura) {
+                document.getElementById('field-data-emissione').value = convertToInputDate(matchDataFattura[1], matchDataFattura[2], matchDataFattura[3]);
+            }
+            if (matchScadenza) {
+                document.getElementById('field-data-scadenza').value = convertToInputDate(matchScadenza[1], matchScadenza[2], matchScadenza[3]);
+            } else {
+                const datesFound = [];
+                const regexDate = /(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/g;
+                let matchDate;
+                while ((matchDate = regexDate.exec(text)) !== null) {
+                    datesFound.push(convertToInputDate(matchDate[1], matchDate[2], matchDate[3]));
+                }
+                if (datesFound.length > 0) {
+                    if (!document.getElementById('field-data-scadenza').value) document.getElementById('field-data-scadenza').value = datesFound[0];
+                    if (!document.getElementById('field-data-emissione').value) document.getElementById('field-data-emissione').value = datesFound[datesFound.length - 1] || datesFound[0];
+                }
             }
 
             // 4. Estrazione righe articoli per scontrino
