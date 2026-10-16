@@ -967,8 +967,7 @@
             }
         }
 
-/* CHIAMATA A GEMINI VISION API (GEMINI 3.8 FLASH) */
-/* CHIAMATA A GEMINI VISION API (MODELLO STABILE) */
+/* CHIAMATA DEFINITIVA API VISION */
 async function analizzaConGeminiVision() {
     if(!currentFileData) {
         alert('Seleziona prima un file!');
@@ -991,7 +990,7 @@ async function analizzaConGeminiVision() {
         
         const promptText = `
         Analizza questa immagine di uno scontrino o bolletta.
-        Estrai i dati e rispondi con una struttura JSON con i seguenti campi:
+        Estrai i dati e rispondi ESCLUSIVAMENTE con una struttura JSON con i seguenti campi:
         - "ente": nome del negozio o fornitore (es. ACTION, Eurospin)
         - "categoria": una tra "Spesa Alimentare", "Luce / Elettricità", "Gas / Gas Naturale", "Acqua", "Internet / Telefono", "Altro"
         - "importo": totale complessivo in numero float
@@ -1000,7 +999,8 @@ async function analizzaConGeminiVision() {
         - "articoli": array di oggetti con "nome" (senza codici a barre/EAN), "prezzo" (float), e "macroArea" (una tra "Alimentari", "Frutta e verdura", "Cura della casa", "Cura della persona", "Elettronica / Tech", "Cancelleria", "Altro")
         `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Utilizziamo il modello stabile supportato da Google AI Studio
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
         
         const response = await fetch(url, {
             method: 'POST',
@@ -1011,10 +1011,7 @@ async function analizzaConGeminiVision() {
                         { text: promptText },
                         { inline_data: { mime_type: "image/jpeg", data: base64Image } }
                     ]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json"
-                }
+                }]
             })
         });
 
@@ -1029,7 +1026,8 @@ async function analizzaConGeminiVision() {
 
         const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (candidateText) {
-            const data = JSON.parse(candidateText);
+            let cleanText = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const data = JSON.parse(cleanText);
             
             document.getElementById('ai-status-badge').style.display = 'inline-block';
             
@@ -1050,7 +1048,7 @@ async function analizzaConGeminiVision() {
             }
 
         } else {
-            alert('L\'AI non è riuscita ad analizzare la struttura dell\'immagine. Riprova con una foto più ravvicinata.');
+            alert('L\'AI non ha restituito dati validi. Riprova.');
         }
 
     } catch(err) {
