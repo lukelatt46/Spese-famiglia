@@ -151,7 +151,6 @@
         .page-section { display: none; }
         .page-section.active { display: block; }
 
-        /* KPIS PROFESSIONALI DASHBOARD */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
         @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; } }
 
@@ -205,13 +204,11 @@
         .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
         .summary-box .total-amount { font-size: 1.2rem; font-weight: 800; color: var(--primary-color); }
 
-        /* LISTA RECENTI STILE BANKING */
         .recent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #f1f5f9; }
         .recent-item-info { display: flex; align-items: center; gap: 10px; }
         .recent-item-icon { width: 34px; height: 34px; border-radius: 8px; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 
-        /* TABELLA RESPONSIVE MOBILE */
         .table-responsive { width: 100%; overflow-x: auto; }
         
         @media (max-width: 600px) {
@@ -311,7 +308,7 @@
 
         <div class="container">
 
-            <!-- DASHBOARD PROFESSIONALE -->
+            <!-- DASHBOARD -->
             <section id="sec-dashboard" class="page-section active">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -351,9 +348,7 @@
                     </div>
                     <div class="card">
                         <h3 style="font-size:1.05rem; margin-bottom:14px; color:var(--text-color);">Ultime Spese Registrate</h3>
-                        <div id="dash-recent-list" class="recent-list">
-                            <!-- Popolato Dinamicamente via JS -->
-                        </div>
+                        <div id="dash-recent-list" class="recent-list"></div>
                     </div>
                 </div>
             </section>
@@ -475,7 +470,7 @@
                 </div>
             </section>
 
-            <!-- SCADENZIARIO COMPLETO DI TUTTI I FILTRI -->
+            <!-- SCADENZIARIO -->
             <section id="sec-scadenzario" class="page-section">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -979,11 +974,13 @@
             return 'Altro';
         }
 
+        /* OCR AVANZATO PER SCONTRINI E BOLLETTE */
         function parseExtractedText(text) {
             if (!text) return;
             const textLower = text.toLowerCase();
             const lines = text.split('\n');
 
+            // Ente / Supermercato
             if (/octopus/i.test(textLower)) {
                 document.getElementById('field-ente').value = 'Octopus Energy';
                 document.getElementById('field-categoria').value = 'Luce / Elettricità';
@@ -1004,7 +1001,8 @@
                 document.getElementById('field-categoria').value = 'Spesa Alimentare';
             }
 
-            const matchTotEsplicito = text.match(/(?:totale da pagare|totale bolletta|dovrai pagare)\s*[:\s]*€?\s*=?\s*(\d{1,4}[\.,]\d{2})/i);
+            // Importo Totale
+            const matchTotEsplicito = text.match(/(?:totale da pagare|totale bolletta|dovrai pagare|totale euro|totale complessivo)\s*[:\s]*€?\s*=?\s*(\d{1,4}[\.,]\d{2})/i);
             if (matchTotEsplicito) {
                 document.getElementById('field-importo').value = parseFloat(matchTotEsplicito[1].replace(',', '.')).toFixed(2);
             } else {
@@ -1014,6 +1012,7 @@
                 }
             }
 
+            // Date
             const matchDataFattura = text.match(/data fattura\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
             const matchScadenza = text.match(/(?:entro il|scadenza|scadenza pagamento)\s*[:\s|]*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i);
 
@@ -1035,18 +1034,21 @@
                 }
             }
 
+            // Estrazione Articoli Scontrino Migliorata
             if (currentDocType === 'scontrino') {
                 const tbody = document.getElementById('tbody-articoli-scontrino');
                 if (tbody) {
                     tbody.innerHTML = '';
                     lines.forEach(line => {
-                        const parts = line.trim().split(/\s+/);
-                        if (parts.length >= 2) {
-                            const lastPart = parts[parts.length - 1].replace(',', '.');
-                            const prezzoProd = parseFloat(lastPart);
-                            if (!isNaN(prezzoProd) && prezzoProd > 0 && prezzoProd < 500) {
-                                const nomeProd = parts.slice(0, parts.length - 1).join(' ');
-                                if (nomeProd.length >= 2 && !/totale|subtotale|contanti|resto|bancomat|carta|euro/i.test(nomeProd)) {
+                        const cleanLine = line.trim().replace(/\*/g, '').replace(/€/g, '');
+                        const priceMatch = cleanLine.match(/(\d+[\.,]\d{2})\s*$/);
+                        
+                        if (priceMatch) {
+                            const prezzoProd = parseFloat(priceMatch[1].replace(',', '.'));
+                            const nomeProd = cleanLine.replace(priceMatch[0], '').trim();
+
+                            if (!isNaN(prezzoProd) && prezzoProd > 0 && prezzoProd < 300) {
+                                if (nomeProd.length >= 2 && !/totale|subtotale|contanti|resto|bancomat|carta|p\.iva|sconto|iva|euro/i.test(nomeProd)) {
                                     const macro = guessMacroArea(nomeProd);
                                     aggiungiRigaArticolo(nomeProd, macro, prezzoProd.toFixed(2));
                                 }
@@ -1166,7 +1168,6 @@
             });
         }
 
-        /* DASHBOARD AGGIORNATA E CORRETTA */
         function updateDashboard() {
             let totalMonth = 0, totalPending = 0;
             const now = new Date();
@@ -1191,7 +1192,6 @@
             document.getElementById('dash-docs-count').innerText = dbSpese.length;
             document.getElementById('dash-items-count').innerText = dbArticoli.length;
 
-            // Riconstruzione lista ultime spese stile banking
             const recentContainer = document.getElementById('dash-recent-list');
             if (recentContainer) {
                 recentContainer.innerHTML = '';
