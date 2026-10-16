@@ -967,8 +967,7 @@
             }
         }
 
-        /* CHIAMATA ROBUSTA A GEMINI VISION API */
-/* CHIAMATA ROBUSTA A GEMINI VISION API (GEMINI 2.5 FLASH) */
+/* CHIAMATA A GEMINI VISION API (GEMINI 3.8 FLASH) */
 async function analizzaConGeminiVision() {
     if(!currentFileData) {
         alert('Seleziona prima un file!');
@@ -1000,7 +999,7 @@ async function analizzaConGeminiVision() {
         - "articoli": array di oggetti con "nome" (senza codici a barre/EAN), "prezzo" (float), e "macroArea" (una tra "Alimentari", "Frutta e verdura", "Cura della casa", "Cura della persona", "Elettronica / Tech", "Cancelleria", "Altro")
         `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
         
         const response = await fetch(url, {
             method: 'POST',
