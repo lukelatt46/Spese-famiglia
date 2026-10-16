@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FamilyBudget - Gestione Spese Cloud</title>
     
-    <!-- PDF.js e Tesseract.js (Fallback) -->
+    <!-- PDF.js e Tesseract.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         try {
@@ -209,6 +209,7 @@
         .recent-item-info { display: flex; align-items: center; gap: 10px; }
         .recent-item-icon { width: 34px; height: 34px; border-radius: 8px; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 
+        /* VOCI SCONTRINO MOBILE COMPATTE */
         .item-card-row {
             background: #ffffff;
             border: 1px solid var(--border-color);
@@ -368,17 +369,12 @@
                 </div>
             </section>
 
-            <!-- SCANNER AI GEMINI VISION -->
+            <!-- SCANNER AI -->
             <section id="sec-scanner" class="page-section">
                 <div class="scanner-grid">
                     <div class="card">
-                        <h3 style="font-size:1.05rem;">✨ Scanner Vision AI</h3>
-                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Analisi intelligente di scontrini e bollette con Gemini Vision API.</p>
-
-                        <div class="form-group" style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--border-color);">
-                            <label style="color:var(--primary-color);">🔑 Chiave API Gemini (Google AI Studio)</label>
-                            <input type="password" id="gemini-api-key" class="form-control" placeholder="Incolla qui la tua API Key Gemini" onchange="salvaGeminiApiKey()">
-                        </div>
+                        <h3 style="font-size:1.05rem;">✨ Scanner AI Documenti</h3>
+                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Carica foto o PDF scontrino/bolletta.</p>
                         
                         <div class="doc-type-selector">
                             <div class="btn-type active" id="type-scontrino" onclick="setDocType('scontrino')">🧾 Scontrino</div>
@@ -394,15 +390,15 @@
                         </div>
                         <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
 
-                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConGeminiVision()">✨ Analizza con Gemini AI</button>
+                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza con AI</button>
                         <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo</button>
-                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi Vision AI in corso...</div>
+                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi OCR in corso...</div>
                     </div>
 
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <h3 style="font-size:1.05rem;">Verifica Dati Estratti</h3>
-                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Vision AI OK</span>
+                            <h3 style="font-size:1.05rem;">Verifica Dati</h3>
+                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Analizzato</span>
                         </div>
 
                         <div class="form-group">
@@ -648,6 +644,7 @@
         let dbArticoli = [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
+        let processedCanvasData = null;
         let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
@@ -659,19 +656,6 @@
         const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Elettronica / Tech', 'Cancelleria', 'Altro'];
         const MEMBRI_FAMIGLIA = ['Famiglia (Comune)', 'Luca', 'Moglie', 'Lavoro / Altro'];
         const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-
-        // Caricamento Chiave API salvata
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if(savedKey) {
-                document.getElementById('gemini-api-key').value = savedKey;
-            }
-        });
-
-        function salvaGeminiApiKey() {
-            const key = document.getElementById('gemini-api-key').value.trim();
-            localStorage.setItem('gemini_api_key', key);
-        }
 
         async function handleLogin() {
             const e = document.getElementById('login-email').value;
@@ -838,6 +822,10 @@
             return dateString;
         }
 
+        function convertToInputDate(day, month, year) {
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
         function switchTab(tabName) {
             document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
@@ -872,6 +860,7 @@
             }
         }
 
+        /* AGGIUNTA RIGHE ARTICOLO CON SELETTORE ASSEGNAZIONE SPESA */
         function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '', assegnatoA = 'Famiglia (Comune)') {
             const container = document.getElementById('articoli-list-container');
             if (!container) return;
@@ -904,6 +893,7 @@
 
         function resetAndUploadNew() {
             currentFileData = null;
+            processedCanvasData = null;
             pdfExtractedText = "";
             document.getElementById('file-input').value = '';
             document.getElementById('preview-container').innerHTML = '';
@@ -925,6 +915,28 @@
             if(file) processFile(file);
         }
 
+        function preprocessImageForOCR(imgElement) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imgElement.naturalWidth || imgElement.width;
+            canvas.height = imgElement.naturalHeight || imgElement.height;
+
+            ctx.drawImage(imgElement, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+
+            for (let i = 0; i < d.length; i += 4) {
+                const v = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+                const threshold = 135;
+                const bw = v > threshold ? 255 : 0;
+                d[i] = bw;
+                d[i + 1] = bw;
+                d[i + 2] = bw;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png');
+        }
+
         function processFile(file) {
             const previewContainer = document.getElementById('preview-container');
             const uploadPrompt = document.getElementById('upload-prompt');
@@ -939,6 +951,17 @@
                     const typedarray = new Uint8Array(e.target.result);
                     if (typeof pdfjsLib !== 'undefined') {
                         pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                            let textPromises = [];
+                            for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+                                textPromises.push(pdf.getPage(i).then(page => {
+                                    return page.getTextContent().then(textContent => textContent.items.map(item => item.str).join(' '));
+                                }));
+                            }
+                            
+                            Promise.all(textPromises).then(pagesText => {
+                                pdfExtractedText = pagesText.join('\n');
+                            });
+
                             pdf.getPage(1).then(page => {
                                 const viewport = page.getViewport({ scale: 1.5 });
                                 const canvas = document.createElement('canvas');
@@ -948,7 +971,8 @@
 
                                 page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
                                     previewContainer.appendChild(canvas);
-                                    currentFileData = canvas.toDataURL('image/jpeg', 0.85);
+                                    currentFileData = canvas.toDataURL('image/png');
+                                    processedCanvasData = currentFileData;
                                 });
                             });
                         });
@@ -960,103 +984,167 @@
                 reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
+                    img.onload = function() {
+                        currentFileData = e.target.result;
+                        processedCanvasData = preprocessImageForOCR(img);
+                    };
                     previewContainer.appendChild(img);
-                    currentFileData = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-/* CHIAMATA DEFINITIVA API VISION */
-async function analizzaConGeminiVision() {
-    if(!currentFileData) {
-        alert('Seleziona prima un file!');
-        return;
-    }
-
-    const apiKey = document.getElementById('gemini-api-key').value.trim();
-    if(!apiKey) {
-        alert('Inserisci la tua API Key Gemini per procedere con la Vision AI!');
-        return;
-    }
-
-    const loader = document.getElementById('loading-indicator');
-    const btnAnalyze = document.getElementById('btn-analyze');
-    loader.style.display = 'block';
-    btnAnalyze.disabled = true;
-
-    try {
-        const base64Image = currentFileData.split(',')[1];
-        
-        const promptText = `
-        Analizza questa immagine di uno scontrino o bolletta.
-        Estrai i dati e rispondi ESCLUSIVAMENTE con una struttura JSON con i seguenti campi:
-        - "ente": nome del negozio o fornitore (es. ACTION, Eurospin)
-        - "categoria": una tra "Spesa Alimentare", "Luce / Elettricità", "Gas / Gas Naturale", "Acqua", "Internet / Telefono", "Altro"
-        - "importo": totale complessivo in numero float
-        - "dataEmissione": data in formato YYYY-MM-DD
-        - "dataScadenza": data in formato YYYY-MM-DD
-        - "articoli": array di oggetti con "nome" (senza codici a barre/EAN), "prezzo" (float), e "macroArea" (una tra "Alimentari", "Frutta e verdura", "Cura della casa", "Cura della persona", "Elettronica / Tech", "Cancelleria", "Altro")
-        `;
-
-        // Utilizziamo il modello stabile supportato da Google AI Studio
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: promptText },
-                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                    ]
-                }]
-            })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || `Errore HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-        loader.style.display = 'none';
-        btnAnalyze.disabled = false;
-
-        const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidateText) {
-            let cleanText = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const data = JSON.parse(cleanText);
-            
-            document.getElementById('ai-status-badge').style.display = 'inline-block';
-            
-            if(data.ente) document.getElementById('field-ente').value = data.ente;
-            if(data.categoria) document.getElementById('field-categoria').value = data.categoria;
-            if(data.importo) document.getElementById('field-importo').value = parseFloat(data.importo).toFixed(2);
-            if(data.dataEmissione) document.getElementById('field-data-emissione').value = data.dataEmissione;
-            if(data.dataScadenza) document.getElementById('field-data-scadenza').value = data.dataScadenza;
-
-            const container = document.getElementById('articoli-list-container');
-            container.innerHTML = '';
-            if(data.articoli && data.articoli.length > 0) {
-                data.articoli.forEach(art => {
-                    aggiungiRigaArticolo(art.nome, art.macroArea || 'Altro', parseFloat(art.prezzo).toFixed(2));
-                });
-            } else {
-                aggiungiRigaArticolo();
+        async function analizzaConOCR() {
+            if(!currentFileData) {
+                alert('Seleziona prima un file!');
+                return;
             }
 
-        } else {
-            alert('L\'AI non ha restituito dati validi. Riprova.');
+            const loader = document.getElementById('loading-indicator');
+            const btnAnalyze = document.getElementById('btn-analyze');
+            loader.style.display = 'block';
+            btnAnalyze.disabled = true;
+
+            try {
+                let textToParse = "";
+
+                if (pdfExtractedText && pdfExtractedText.trim().length > 20) {
+                    textToParse = pdfExtractedText;
+                } else if (typeof Tesseract !== 'undefined') {
+                    const imageToUse = processedCanvasData || currentFileData;
+                    const { data: { text } } = await Tesseract.recognize(imageToUse, 'ita+eng');
+                    textToParse = text;
+                }
+
+                loader.style.display = 'none';
+                btnAnalyze.disabled = false;
+                document.getElementById('ai-status-badge').style.display = 'inline-block';
+
+                parseExtractedText(textToParse);
+            } catch(err) {
+                loader.style.display = 'none';
+                btnAnalyze.disabled = false;
+                alert('Errore durante la lettura del documento.');
+            }
         }
 
-    } catch(err) {
-        loader.style.display = 'none';
-        btnAnalyze.disabled = false;
-        alert('Errore Vision AI: ' + err.message);
-    }
-}
+        function guessMacroArea(prodotto) {
+            const p = prodotto.toLowerCase();
+            if (/mela|pere|banana|frutta|insalata|pomodor|zucchine|carote|verdura|oragano|limoni/i.test(p)) return 'Frutta e verdura';
+            if (/detersivo|scottex|carta|candeggina|sgrassat|piatti|lavatrice|spugna|wc|casa/i.test(p)) return 'Cura della casa';
+            if (/shampoo|sapone|bagnoschiuma|dentifricio|assorbenti|crema|rasoio/i.test(p)) return 'Cura della persona';
+            if (/hub|usb|auric|porte|mic|fresh|rebel|cavo|luce/i.test(p)) return 'Elettronica / Tech';
+            if (/pennar|ast|pennarelli|matite|quaderno|fogli/i.test(p)) return 'Cancelleria';
+            if (/pane|latte|pasta|riso|carne|pollo|prosciutto|formaggio|mozzarella|uova|biscotti|olio|acqua|caffè|passata/i.test(p)) return 'Alimentari';
+            return 'Altro';
+        }
+
+        function cleanItemName(rawName) {
+            // Rimuove codici numerici EAN/prodotto iniziali (es. 3220921, 3207816)
+            return rawName.replace(/^\d{5,12}\s+/, '').trim();
+        }
+
+        /* PARSER MULTILINEA E PULIZIA NOMI */
+        function parseExtractedText(text) {
+            if (!text) return;
+
+            const cleanText = text.replace(/€/g, '').replace(/\*/g, '');
+            const textLower = cleanText.toLowerCase();
+            const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+            // Ente / Supermercato
+            if (/action/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'ACTION';
+                document.getElementById('field-categoria').value = 'Altro';
+            } else if (/octopus/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Octopus Energy';
+                document.getElementById('field-categoria').value = 'Luce / Elettricità';
+            } else if (/argos/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'Argos';
+                document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
+            } else if (/eurospin/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'EUROSPIN';
+                document.getElementById('field-categoria').value = 'Spesa Alimentare';
+            } else if (/coop/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'COOP';
+                document.getElementById('field-categoria').value = 'Spesa Alimentare';
+            } else if (/conad/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'CONAD';
+                document.getElementById('field-categoria').value = 'Spesa Alimentare';
+            } else if (/lidl/i.test(textLower)) {
+                document.getElementById('field-ente').value = 'LIDL';
+                document.getElementById('field-categoria').value = 'Spesa Alimentare';
+            }
+
+            // Importo Totale
+            const matchTotEsplicito = cleanText.match(/(?:totale|dovrai pagare|importo|totale euro)\s*[:\s|]*=?\s*(\d{1,4}[\.,]\d{2})/i);
+            if (matchTotEsplicito) {
+                document.getElementById('field-importo').value = parseFloat(matchTotEsplicito[1].replace(',', '.')).toFixed(2);
+            } else {
+                const numbers = [];
+                const genericRegex = /(\d{1,4}[\.,]\d{2})/g;
+                let matchNum;
+                while ((matchNum = genericRegex.exec(cleanText)) !== null) {
+                    const val = parseFloat(matchNum[1].replace(',', '.'));
+                    if(!isNaN(val) && val > 0 && val < 1000) numbers.push(val);
+                }
+                if (numbers.length > 0) {
+                    document.getElementById('field-importo').value = Math.max(...numbers).toFixed(2);
+                }
+            }
+
+            // Date
+            const matchDataFattura = cleanText.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
+            if (matchDataFattura) {
+                const dateFormatted = convertToInputDate(matchDataFattura[1], matchDataFattura[2], matchDataFattura[3]);
+                document.getElementById('field-data-scadenza').value = dateFormatted;
+                document.getElementById('field-data-emissione').value = dateFormatted;
+            }
+
+            // Estrazione Voci Scontrino
+            if (currentDocType === 'scontrino') {
+                const container = document.getElementById('articoli-list-container');
+                if (container) {
+                    container.innerHTML = '';
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        let currentLine = lines[i];
+                        if (/totale|subtotale|contanti|resto|bancomat|carta|p\.iva|sconto|iva|euro|numero|articoli|grazie/i.test(currentLine)) continue;
+
+                        let priceMatch = currentLine.match(/(\d{1,3}[\.,]\d{2})$/);
+                        let nomeProd = "";
+                        let prezzoProd = null;
+
+                        if (priceMatch) {
+                            prezzoProd = parseFloat(priceMatch[1].replace(',', '.'));
+                            nomeProd = currentLine.replace(priceMatch[0], '').trim();
+                        } else if (i + 1 < lines.length) {
+                            let nextLine = lines[i + 1];
+                            let nextPriceMatch = nextLine.match(/(\d{1,3}[\.,]\d{2})$/);
+                            if (nextPriceMatch) {
+                                prezzoProd = parseFloat(nextPriceMatch[1].replace(',', '.'));
+                                let extraText = nextLine.replace(nextPriceMatch[0], '').trim();
+                                nomeProd = (currentLine + " " + extraText).trim();
+                                i++;
+                            }
+                        }
+
+                        if (prezzoProd && !isNaN(prezzoProd) && prezzoProd > 0 && prezzoProd < 200) {
+                            nomeProd = cleanItemName(nomeProd);
+                            if (nomeProd.length >= 3) {
+                                const macro = guessMacroArea(nomeProd);
+                                aggiungiRigaArticolo(nomeProd, macro, prezzoProd.toFixed(2));
+                            }
+                        }
+                    }
+
+                    if (container.children.length === 0) {
+                        aggiungiRigaArticolo();
+                    }
+                }
+            }
+        }
+
         function sortTable(column) {
             if (sortColumn === column) sortAscending = !sortAscending;
             else { sortColumn = column; sortAscending = true; }
