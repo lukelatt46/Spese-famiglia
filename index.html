@@ -190,7 +190,7 @@
         .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
         .summary-box .total-amount { font-size: 1.15rem; font-weight: 800; color: var(--primary-color); }
 
-        /* TABELLA RESPONSIVE MOBILE */
+        /* TABELLA RESPONSIVE E STILI ORDINAMENTO */
         .table-responsive { width: 100%; overflow-x: auto; }
         
         @media (max-width: 600px) {
@@ -225,7 +225,8 @@
         @media (min-width: 601px) {
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-            th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; }
+            th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; user-select: none; transition: background 0.2s; }
+            th:hover { background: #edf2f7; color: var(--primary-color); }
             tfoot td { background: #f8fafc; font-weight: bold; font-size: 0.95rem; border-top: 2px solid var(--border-color); }
         }
 
@@ -234,8 +235,8 @@
         .status-paid { background: #dcfce7; color: #166534; }
 
         .btn-actions-container { display: flex; gap: 8px; width: 100%; justify-content: flex-end; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
 
         .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
         .modal-backdrop.active { display: flex; }
@@ -449,7 +450,7 @@
                 </div>
             </section>
 
-            <!-- SCADENZIARIO -->
+            <!-- SCADENZIARIO COMPLETO (FILTRI E ORDINAMENTO RIPRISTINATI) -->
             <section id="sec-scadenzario" class="page-section">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -459,9 +460,11 @@
                     
                     <div class="filters-bar" style="margin-top: 12px;">
                         <div class="form-group" style="margin-bottom:0;">
-                            <input type="text" id="filter-search" class="form-control" placeholder="🔍 Cerca fornitore..." oninput="renderScadenzario()">
+                            <label style="font-size:0.75rem; color:#64748b;">🔍 Cerca Fornitore</label>
+                            <input type="text" id="filter-search" class="form-control" placeholder="Es. Octopus..." oninput="renderScadenzario()">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:0.75rem; color:#64748b;">📂 Categoria</label>
                             <select id="filter-categoria" class="form-control" onchange="renderScadenzario()">
                                 <option value="ALL">Tutte le Categorie</option>
                                 <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
@@ -473,16 +476,21 @@
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:0.75rem; color:#64748b;">📌 Stato</label>
                             <select id="filter-stato" class="form-control" onchange="renderScadenzario()">
                                 <option value="ALL">Tutti gli Stati</option>
                                 <option value="Da Pagare">⏳ Da Pagare</option>
                                 <option value="Pagato">✅ Pagato</option>
                             </select>
                         </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:0.75rem; color:#64748b;">🗓️ Mese Scadenza</label>
+                            <input type="month" id="filter-mese-scadenza" class="form-control" onchange="renderScadenzario()">
+                        </div>
                     </div>
 
                     <div class="summary-box">
-                        <div class="info">💰 Totale (<span id="filtered-count">0</span> v)</div>
+                        <div class="info">💰 Totale (<span id="filtered-count">0</span> voci)</div>
                         <div class="total-amount" id="filtered-total-amount">€ 0,00</div>
                     </div>
 
@@ -490,23 +498,30 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th onclick="sortTable('tipo')">Tipo</th>
-                                    <th onclick="sortTable('ente')">Fornitore</th>
-                                    <th onclick="sortTable('categoria')">Categoria</th>
-                                    <th onclick="sortTable('importo')">Importo</th>
-                                    <th onclick="sortTable('dataEmissione')">Emissione</th>
-                                    <th onclick="sortTable('dataScadenza')">Scadenza</th>
-                                    <th onclick="sortTable('stato')">Stato</th>
+                                    <th onclick="sortTable('tipo')">Tipo <span id="sort-icon-tipo">↕</span></th>
+                                    <th onclick="sortTable('ente')">Fornitore <span id="sort-icon-ente">↕</span></th>
+                                    <th onclick="sortTable('categoria')">Categoria <span id="sort-icon-categoria">↕</span></th>
+                                    <th onclick="sortTable('importo')">Importo <span id="sort-icon-importo">↕</span></th>
+                                    <th onclick="sortTable('dataEmissione')">Emissione <span id="sort-icon-dataEmissione">↕</span></th>
+                                    <th onclick="sortTable('dataScadenza')">Scadenza <span id="sort-icon-dataScadenza">↕</span></th>
+                                    <th onclick="sortTable('stato')">Stato <span id="sort-icon-stato">↕</span></th>
                                     <th>Azioni</th>
                                 </tr>
                             </thead>
                             <tbody id="table-scadenzario-tbody"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="text-align: right;"><b>Totale Importo:</b></td>
+                                    <td id="tfoot-total-amount"><b>€ 0,00</b></td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- STATISTICHE UTENZE (RIPRISTINATA ED EVOLUTA) -->
+            <!-- STATISTICHE UTENZE -->
             <section id="sec-statistiche" class="page-section">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
@@ -1021,12 +1036,21 @@
             }
         }
 
+        // FUNZIONI DI ORDINAMENTO TABELLA
         function sortTable(column) {
             if (sortColumn === column) sortAscending = !sortAscending;
             else { sortColumn = column; sortAscending = true; }
             renderScadenzario();
         }
 
+        function updateSortIcons() {
+            ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'].forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (icon) icon.innerText = (col === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
+            });
+        }
+
+        // RENDER SCADENZARIO COMPLETO DI TUTTI I FILTRI
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             if (!tbody) return;
@@ -1035,12 +1059,16 @@
             const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
             const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
             const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
+            const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
 
             let filteredList = dbSpese.filter(item => {
                 const matchSearch = (item.ente || '').toLowerCase().includes(searchVal);
                 const matchCat = catVal === 'ALL' || item.categoria === catVal;
                 const matchStato = statoVal === 'ALL' || item.stato === statoVal;
-                return matchSearch && matchCat && matchStato;
+                let matchMonth = true;
+                if (monthVal && item.dataScadenza) matchMonth = item.dataScadenza.startsWith(monthVal);
+
+                return matchSearch && matchCat && matchStato && matchMonth;
             });
 
             filteredList.sort((a, b) => {
@@ -1060,9 +1088,13 @@
                 return 0;
             });
 
+            updateSortIcons();
+
             const total = filteredList.reduce((s, i) => s + (parseFloat(i.importo) || 0), 0);
             document.getElementById('filtered-count').innerText = filteredList.length;
             document.getElementById('filtered-total-amount').innerText = `€ ${total.toFixed(2)}`;
+            const tfoot = document.getElementById('tfoot-total-amount');
+            if(tfoot) tfoot.innerHTML = `<b>€ ${total.toFixed(2)}</b>`;
 
             filteredList.forEach(item => {
                 const tr = document.createElement('tr');
@@ -1127,7 +1159,6 @@
             document.getElementById('dash-items-count').innerText = dbArticoli.length;
         }
 
-        // STATISTICHE UTENZE EVOLUTE CON FILTRO MESE/ANNO E DOPPIO GRAFICO
         function renderStatistiche() {
             const canvasPie = document.getElementById('chartStatistiche');
             const canvasBar = document.getElementById('chartUtenzeStorico');
@@ -1135,7 +1166,6 @@
 
             const selectedMonth = document.getElementById('filter-stat-month')?.value || '';
 
-            // 1. Dati Categorie (Filtrati o Totali)
             const categories = {};
             dbSpese.forEach(item => {
                 const dateRef = item.dataEmissione || item.dataScadenza;
@@ -1163,7 +1193,6 @@
                 });
             }
 
-            // 2. Dati Storico Mensile Utenze (Luce, Gas, Acqua, Internet)
             const utenzeMonthly = {};
             dbSpese.forEach(item => {
                 if (/Luce|Gas|Acqua|Internet/i.test(item.categoria)) {
