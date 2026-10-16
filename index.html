@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FamilyBudget - Gestione Spese Cloud</title>
     
     <!-- PDF.js e Tesseract.js -->
@@ -78,7 +78,7 @@
         }
 
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background-color: var(--bg-color); color: var(--text-color); }
+        body { background-color: var(--bg-color); color: var(--text-color); -webkit-tap-highlight-color: transparent; }
 
         #auth-section {
             min-height: 100vh;
@@ -86,12 +86,12 @@
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, #5142e6 0%, #1e1b4b 100%);
-            padding: 20px;
+            padding: 16px;
         }
 
         .auth-card {
             background: white;
-            padding: 32px;
+            padding: 24px;
             border-radius: 16px;
             max-width: 400px;
             width: 100%;
@@ -99,95 +99,150 @@
             text-align: center;
         }
 
-        .auth-card h2 { color: var(--primary-color); margin-bottom: 8px; }
-        .auth-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; }
+        .auth-card h2 { color: var(--primary-color); margin-bottom: 8px; font-size: 1.5rem; }
+        .auth-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
 
         header {
             background: #ffffff;
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 32px;
+            padding: 12px 16px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .brand { font-size: 1.4rem; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
-        nav { display: flex; gap: 12px; flex-wrap: wrap; }
-        .nav-link { text-decoration: none; color: var(--text-muted); font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        .nav-link:hover, .nav-link.active { color: var(--primary-color); background-color: #f0f0ff; }
+        @media (min-width: 768px) {
+            header { flex-direction: row; justify-content: space-between; align-items: center; padding: 16px 32px; }
+        }
 
-        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .brand { font-size: 1.2rem; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
+
+        nav { 
+            display: flex; 
+            gap: 6px; 
+            overflow-x: auto; 
+            padding-bottom: 4px;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-link { 
+            text-decoration: none; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            padding: 8px 12px; 
+            border-radius: 20px; 
+            cursor: pointer; 
+            transition: 0.2s;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            background: #f1f5f9;
+        }
+        .nav-link.active { color: white; background-color: var(--primary-color); }
+
+        .container { max-width: 1200px; margin: 16px auto; padding: 0 12px; }
         .page-section { display: none; }
         .page-section.active { display: block; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .stat-card h4 { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px; }
-        .stat-card .amount { font-size: 1.8rem; font-weight: bold; color: var(--text-color); }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; } }
 
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-        .card { background: white; padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px; overflow-x: auto; }
+        .stat-card { background: white; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .stat-card h4 { color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px; }
+        .stat-card .amount { font-size: 1.3rem; font-weight: bold; color: var(--text-color); }
 
-        .scanner-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
-        .doc-type-selector { display: flex; gap: 12px; margin-bottom: 16px; }
-        .btn-type { flex: 1; padding: 10px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); text-align: center; }
+        .dashboard-grid, .scanner-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 850px) { 
+            .dashboard-grid, .scanner-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } 
+        }
+
+        .card { background: white; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 16px; }
+        @media (min-width: 768px) { .card { padding: 24px; margin-bottom: 20px; } }
+
+        .doc-type-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+        .btn-type { flex: 1; padding: 12px 8px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); text-align: center; font-size: 0.85rem; }
         .btn-type.active { border-color: var(--accent-gold); background: #fffdf5; color: var(--accent-gold); }
 
-        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; text-align: center; background: #fafafa; cursor: pointer; position: relative; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #preview-container { width: 100%; max-height: 350px; overflow-y: auto; display: none; }
+        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px 10px; text-align: center; background: #fafafa; cursor: pointer; position: relative; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #preview-container { width: 100%; max-height: 300px; overflow-y: auto; display: none; }
         #preview-container img, #preview-container canvas { max-width: 100%; border-radius: 8px; }
 
-        .btn-primary { width: 100%; background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 12px; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-secondary { width: 100%; background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; margin-top: 8px; }
+        .btn-primary { width: 100%; background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 0.95rem; cursor: pointer; margin-top: 10px; min-height: 48px; }
+        .btn-secondary { width: 100%; background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px; min-height: 44px; }
         .btn-gold { background: var(--accent-gold); }
-        .btn-gold:hover { background: #ab700b; }
-        .btn-sm { padding: 4px 8px; font-size: 0.8rem; width: auto; margin: 0; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; width: auto; margin: 0; }
 
-        .form-row-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-        .form-group { margin-bottom: 16px; text-align: left; }
-        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
-        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; }
+        .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media (min-width: 480px) { .form-row-2 { grid-template-columns: 1fr 1fr; } }
 
-        .filters-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border-color); }
-        .summary-box { display: flex; align-items: center; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 20px; margin-bottom: 16px; }
-        .summary-box .info { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: #3730a3; font-weight: 600; }
-        .summary-box .total-amount { font-size: 1.3rem; font-weight: 800; color: var(--primary-color); }
+        .form-group { margin-bottom: 12px; text-align: left; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; background: #fff; min-height: 44px; }
 
+        .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+        @media (min-width: 600px) { .filters-bar { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
+
+        .summary-box { display: flex; align-items: center; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+        .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
+        .summary-box .total-amount { font-size: 1.15rem; font-weight: 800; color: var(--primary-color); }
+
+        /* TABELLA RESPONSIVE MOBILE - STILE CARD */
         .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; }
-        tfoot td { background: #f8fafc; font-weight: bold; font-size: 0.95rem; border-top: 2px solid var(--border-color); }
+        
+        @media (max-width: 600px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+            tr { 
+                background: #fff; 
+                border: 1px solid var(--border-color); 
+                border-radius: 10px; 
+                padding: 12px; 
+                margin-bottom: 12px; 
+                box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
+            }
+            td { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                padding: 6px 0; 
+                border-bottom: 1px dashed #f1f5f9; 
+                font-size: 0.85rem; 
+            }
+            td:last-child { border-bottom: none; padding-top: 10px; }
+            td::before { 
+                content: attr(data-label); 
+                font-weight: 600; 
+                color: var(--text-muted); 
+                font-size: 0.8rem; 
+            }
+            tfoot { display: none; }
+        }
+
+        @media (min-width: 601px) {
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+            th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; }
+            tfoot td { background: #f8fafc; font-weight: bold; font-size: 0.95rem; border-top: 2px solid var(--border-color); }
+        }
 
         .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
         .status-pending { background: #fef3c7; color: #92400e; }
         .status-paid { background: #dcfce7; color: #166534; }
 
-        .btn-actions-container { display: flex; gap: 6px; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-actions-container { display: flex; gap: 8px; width: 100%; justify-content: flex-end; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
 
-        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
         .modal-backdrop.active { display: flex; }
-        .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
 
-        .items-table-container { margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: #f8fafc; }
-        .items-table-container h4 { font-size: 0.9rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .items-table input, .items-table select { padding: 6px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); width: 100%; }
-
-        .user-pill {
-            background: #f1f5f9;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: #475569;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: #f8fafc; }
+        .user-pill { background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; color: #475569; display: flex; align-items: center; gap: 6px; }
     </style>
 </head>
 <body>
@@ -195,7 +250,7 @@
     <!-- LOGIN CLOUD -->
     <div id="auth-section">
         <div class="auth-card">
-            <h2>🏠 FamilyBudget Cloud</h2>
+            <h2>🏠 FamilyBudget</h2>
             <p>Accedi con Email e Password per sincronizzare PC e Smartphone.</p>
             
             <div class="form-group">
@@ -216,7 +271,13 @@
     <!-- APP PRINCIPALE -->
     <div id="app-content" style="display:none;">
         <header>
-            <div class="brand">🏠 FamilyBudget Cloud</div>
+            <div class="header-top">
+                <div class="brand">🏠 FamilyBudget</div>
+                <div class="user-pill">
+                    👤 <span id="user-email-label">utente</span>
+                    <button onclick="handleLogout()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold; margin-left:4px;">Esci</button>
+                </div>
+            </div>
             <nav>
                 <a class="nav-link active" onclick="switchTab('dashboard')">Dashboard</a>
                 <a class="nav-link" onclick="switchTab('scanner')">Scanner AI</a>
@@ -224,10 +285,6 @@
                 <a class="nav-link" onclick="switchTab('scadenzario')">Scadenzario</a>
                 <a class="nav-link" onclick="switchTab('statistiche')">Statistiche Utenze</a>
             </nav>
-            <div class="user-pill">
-                👤 <span id="user-email-label">utente@email.com</span>
-                <button onclick="handleLogout()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold; margin-left:6px;">Esci</button>
-            </div>
         </header>
 
         <div class="container">
@@ -236,30 +293,30 @@
             <section id="sec-dashboard" class="page-section active">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h4>Spese Mese Corrente</h4>
+                        <h4>Mese Corrente</h4>
                         <div class="amount" id="dash-month-total">€ 0,00</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Bollette da Pagare</h4>
+                        <h4>Da Pagare</h4>
                         <div class="amount" style="color: #d97706;" id="dash-pending-total">€ 0,00</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Articoli Registrati</h4>
+                        <h4>Articoli</h4>
                         <div class="amount" style="color: #10b981;" id="dash-items-count">0</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Documenti Archiviati</h4>
+                        <h4>Documenti</h4>
                         <div class="amount" id="dash-docs-count">0</div>
                     </div>
                 </div>
 
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3>Andamento Spese Mensili</h3>
-                        <canvas id="chartDashboard" height="140"></canvas>
+                        <h3 style="font-size:1.05rem; margin-bottom:12px;">Andamento Spese Mensili</h3>
+                        <canvas id="chartDashboard" height="150"></canvas>
                     </div>
                     <div class="card">
-                        <h3>Ultime Spese Registrate</h3>
+                        <h3 style="font-size:1.05rem; margin-bottom:12px;">Ultime Spese Registrate</h3>
                         <div class="table-responsive">
                             <table style="font-size: 0.85rem; min-width: 0;">
                                 <thead>
@@ -279,44 +336,43 @@
             <section id="sec-scanner" class="page-section">
                 <div class="scanner-grid">
                     <div class="card">
-                        <h3>✨ Scanner AI Documenti</h3>
-                        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Carica una foto dello scontrino o una bolletta (PDF/Immagine).</p>
+                        <h3 style="font-size:1.05rem;">✨ Scanner AI Documenti</h3>
+                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Carica foto o PDF scontrino/bolletta.</p>
                         
                         <div class="doc-type-selector">
-                            <div class="btn-type active" id="type-scontrino" onclick="setDocType('scontrino')">🧾 Scontrino Spesa</div>
-                            <div class="btn-type" id="type-bolletta" onclick="setDocType('bolletta')">📄 Bolletta Utenza</div>
+                            <div class="btn-type active" id="type-scontrino" onclick="setDocType('scontrino')">🧾 Scontrino</div>
+                            <div class="btn-type" id="type-bolletta" onclick="setDocType('bolletta')">📄 Bolletta</div>
                         </div>
 
                         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
                             <div id="upload-prompt">
-                                📄 <b>Trascina qui il documento</b> (PDF/Immagine)<br>
-                                <span style="font-size:0.8rem; color:#94a3b8;">oppure clicca per selezionarlo</span>
+                                📄 <b>Tocca per caricare</b><br>
+                                <span style="font-size:0.75rem; color:#94a3b8;">PDF o Foto</span>
                             </div>
                             <div id="preview-container"></div>
                         </div>
                         <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
 
-                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza Documento con AI</button>
-                        <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo Documento</button>
-                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.9rem; margin-top:8px;">⏳ Analisi OCR in corso...</div>
+                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza con AI</button>
+                        <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo</button>
+                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi OCR in corso...</div>
                     </div>
 
                     <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3>Verifica Dati Estratti</h3>
-                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Analizzato da AI</span>
-                        </div>
-                        <p style="font-size:0.85rem; color:#64748b; margin-bottom:16px;">Controlla le informazioni prima di salvare nel cloud.</p>
-
-                        <div class="form-group">
-                            <label>Ente / Fornitore / Supermercato</label>
-                            <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Coop, Conad, Argos">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="font-size:1.05rem;">Verifica Dati</h3>
+                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Analizzato</span>
                         </div>
 
                         <div class="form-group">
-                            <label>Tipo Utenza / Categoria</label>
+                            <label>Fornitore / Negozio</label>
+                            <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Argos">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categoria</label>
                             <select id="field-categoria" class="form-control">
-                                <option value="Spesa Alimentare">🛒 Spesa Alimentare / Supermercato</option>
+                                <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                                 <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
                                 <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
                                 <option value="Acqua">💧 Acqua</option>
@@ -332,36 +388,28 @@
 
                         <div class="form-row-2">
                             <div class="form-group">
-                                <label>Data Emissione / Fattura</label>
+                                <label>Data Emissione</label>
                                 <input type="date" id="field-data-emissione" class="form-control">
                             </div>
                             <div class="form-group">
-                                <label id="label-data">Data Spesa / Scadenza</label>
+                                <label id="label-data">Data Scadenza</label>
                                 <input type="date" id="field-data-scadenza" class="form-control">
                             </div>
                         </div>
 
                         <div id="container-dettaglio-articoli" class="items-table-container">
-                            <h4>
-                                <span>📦 Dettaglio Articoli Scontrino</span>
-                                <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi Articolo</button>
+                            <h4 style="font-size:0.85rem; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>📦 Articoli Scontrino</span>
+                                <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi</button>
                             </h4>
                             <div class="table-responsive">
                                 <table class="items-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Prodotto</th>
-                                            <th>Macro-Area</th>
-                                            <th style="width: 80px;">€</th>
-                                            <th style="width: 30px;"></th>
-                                        </tr>
-                                    </thead>
                                     <tbody id="tbody-articoli-scontrino"></tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-top:16px;">
+                        <div class="form-group" style="margin-top:12px;">
                             <label>Stato Pagamento</label>
                             <select id="field-stato" class="form-control">
                                 <option value="Pagato">✅ Pagato</option>
@@ -378,15 +426,15 @@
             <section id="sec-articoli" class="page-section">
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3>🏆 Prodotti Acquistati Più Di Frequente</h3>
+                        <h3 style="font-size:1.05rem; margin-bottom:12px;">🏆 Prodotti Più Acquistati</h3>
                         <div class="table-responsive">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Nome Prodotto</th>
+                                        <th>Prodotto</th>
                                         <th>Macro-Area</th>
-                                        <th>Volte Acquistato</th>
-                                        <th>Spesa Totale</th>
+                                        <th>Conteggio</th>
+                                        <th>Spesa</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-frequenza-articoli"></tbody>
@@ -395,7 +443,7 @@
                     </div>
 
                     <div class="card">
-                        <h3>🍎 Spesa per Macro-Area</h3>
+                        <h3 style="font-size:1.05rem; margin-bottom:12px;">🍎 Spesa per Macro-Area</h3>
                         <canvas id="chartMacroAree" height="180"></canvas>
                     </div>
                 </div>
@@ -404,18 +452,16 @@
             <!-- SCADENZIARIO -->
             <section id="sec-scadenzario" class="page-section">
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>📅 Scadenzario & Archivio Spese Cloud</h3>
-                        <button class="btn-secondary btn-sm" onclick="importaDatiLocaliNelCloud()" style="width:auto;">📥 Sincronizza Vecchi Dati Locali</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <h3 style="font-size:1.05rem;">📅 Scadenzario Spese</h3>
+                        <button class="btn-secondary btn-sm" onclick="importaDatiLocaliNelCloud()" style="width:auto;">📥 Sincronizza Locali</button>
                     </div>
                     
                     <div class="filters-bar" style="margin-top: 12px;">
-                        <div class="form-group">
-                            <label>🔍 Cerca Fornitore</label>
-                            <input type="text" id="filter-search" class="form-control" placeholder="Es. Octopus..." oninput="renderScadenzario()">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <input type="text" id="filter-search" class="form-control" placeholder="🔍 Cerca fornitore..." oninput="renderScadenzario()">
                         </div>
-                        <div class="form-group">
-                            <label>📂 Categoria</label>
+                        <div class="form-group" style="margin-bottom:0;">
                             <select id="filter-categoria" class="form-control" onchange="renderScadenzario()">
                                 <option value="ALL">Tutte le Categorie</option>
                                 <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
@@ -426,22 +472,17 @@
                                 <option value="Altro">📦 Altro</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>📌 Stato</label>
+                        <div class="form-group" style="margin-bottom:0;">
                             <select id="filter-stato" class="form-control" onchange="renderScadenzario()">
                                 <option value="ALL">Tutti gli Stati</option>
                                 <option value="Da Pagare">⏳ Da Pagare</option>
                                 <option value="Pagato">✅ Pagato</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>🗓️ Mese Scadenza</label>
-                            <input type="month" id="filter-mese-scadenza" class="form-control" onchange="renderScadenzario()">
-                        </div>
                     </div>
 
                     <div class="summary-box">
-                        <div class="info">💰 <span>Totale Voci Visualizzate (<span id="filtered-count">0</span> elementi)</span></div>
+                        <div class="info">💰 Totale (<span id="filtered-count">0</span> v)</div>
                         <div class="total-amount" id="filtered-total-amount">€ 0,00</div>
                     </div>
 
@@ -449,24 +490,17 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th onclick="sortTable('tipo')">Tipo <span id="sort-icon-tipo">↕</span></th>
-                                    <th onclick="sortTable('ente')">Fornitore <span id="sort-icon-ente">↕</span></th>
-                                    <th onclick="sortTable('categoria')">Categoria <span id="sort-icon-categoria">↕</span></th>
-                                    <th onclick="sortTable('importo')">Importo <span id="sort-icon-importo">↕</span></th>
-                                    <th onclick="sortTable('dataEmissione')">Data Emissione <span id="sort-icon-dataEmissione">↕</span></th>
-                                    <th onclick="sortTable('dataScadenza')">Data Scadenza <span id="sort-icon-dataScadenza">↕</span></th>
-                                    <th onclick="sortTable('stato')">Stato <span id="sort-icon-stato">↕</span></th>
+                                    <th onclick="sortTable('tipo')">Tipo</th>
+                                    <th onclick="sortTable('ente')">Fornitore</th>
+                                    <th onclick="sortTable('categoria')">Categoria</th>
+                                    <th onclick="sortTable('importo')">Importo</th>
+                                    <th onclick="sortTable('dataEmissione')">Emissione</th>
+                                    <th onclick="sortTable('dataScadenza')">Scadenza</th>
+                                    <th onclick="sortTable('stato')">Stato</th>
                                     <th>Azioni</th>
                                 </tr>
                             </thead>
                             <tbody id="table-scadenzario-tbody"></tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" style="text-align: right;"><b>Totale Importo:</b></td>
-                                    <td id="tfoot-total-amount"><b>€ 0,00</b></td>
-                                    <td colspan="4"></td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -475,8 +509,8 @@
             <!-- STATISTICHE UTENZE -->
             <section id="sec-statistiche" class="page-section">
                 <div class="card">
-                    <h3>📊 Ripartizione Spese Utenze</h3>
-                    <canvas id="chartStatistiche" height="100"></canvas>
+                    <h3 style="font-size:1.05rem; margin-bottom:12px;">📊 Ripartizione Utenze</h3>
+                    <canvas id="chartStatistiche" height="140"></canvas>
                 </div>
             </section>
         </div>
@@ -485,14 +519,14 @@
     <!-- MODALE MODIFICA CLOUD -->
     <div id="modal-edit" class="modal-backdrop">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3>✏️ Modifica Documento</h3>
-                <button onclick="chiudiModalModifica()" style="border:none; background:none; font-size:1.4rem; cursor:pointer;">&times;</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:1.1rem;">✏️ Modifica Documento</h3>
+                <button onclick="chiudiModalModifica()" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <input type="hidden" id="edit-idDoc">
 
             <div class="form-group">
-                <label>Fornitore / Ente</label>
+                <label>Fornitore</label>
                 <input type="text" id="edit-ente" class="form-control">
             </div>
 
@@ -532,9 +566,9 @@
                 </select>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-                <button class="btn-secondary" style="width:auto;" onclick="chiudiModalModifica()">Annulla</button>
-                <button class="btn-primary" style="width:auto; margin-top:0;" onclick="salvaModificaCloud()">Salva Modifiche</button>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn-secondary" onclick="chiudiModalModifica()">Annulla</button>
+                <button class="btn-primary" style="margin-top:0;" onclick="salvaModificaCloud()">Salva</button>
             </div>
         </div>
     </div>
@@ -699,11 +733,11 @@
             });
 
             chiudiModalModifica();
-            alert('Modifica salvata nel Cloud!');
+            alert('Modifica salvata!');
         }
 
         async function eliminaDocumento(idDoc) {
-            if(confirm('Eliminare questo documento dal Cloud?')) {
+            if(confirm('Eliminare questo documento?')) {
                 const { doc, deleteDoc } = window.fbMethods;
                 await deleteDoc(doc(window.fbDb, "spese", idDoc));
             }
@@ -761,10 +795,10 @@
             let options = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
 
             tr.innerHTML = `
-                <td><input type="text" class="item-name" placeholder="es. Latte" value="${nome}"></td>
-                <td><select class="item-macro">${options}</select></td>
-                <td><input type="number" step="0.01" class="item-price" placeholder="0.00" value="${prezzo}"></td>
-                <td><button type="button" onclick="this.closest('tr').remove()" style="background:none; border:none; color:red; cursor:pointer;">✖</button></td>
+                <td style="padding:4px 0;"><input type="text" class="item-name form-control" placeholder="es. Latte" value="${nome}"></td>
+                <td style="padding:4px 0;"><select class="item-macro form-control">${options}</select></td>
+                <td style="padding:4px 0;"><input type="number" step="0.01" class="item-price form-control" placeholder="0.00" value="${prezzo}"></td>
+                <td style="padding:4px 0; text-align:center;"><button type="button" onclick="this.closest('tr').remove()" style="background:none; border:none; color:red; font-size:1.2rem;">✖</button></td>
             `;
             tbody.appendChild(tr);
         }
@@ -975,13 +1009,6 @@
             renderScadenzario();
         }
 
-        function updateSortIcons() {
-            ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'].forEach(col => {
-                const icon = document.getElementById(`sort-icon-${col}`);
-                if (icon) icon.innerText = (col === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
-            });
-        }
-
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             if (!tbody) return;
@@ -990,15 +1017,12 @@
             const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
             const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
             const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
-            const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
 
             let filteredList = dbSpese.filter(item => {
                 const matchSearch = (item.ente || '').toLowerCase().includes(searchVal);
                 const matchCat = catVal === 'ALL' || item.categoria === catVal;
                 const matchStato = statoVal === 'ALL' || item.stato === statoVal;
-                let matchMonth = true;
-                if (monthVal && item.dataScadenza) matchMonth = item.dataScadenza.startsWith(monthVal);
-                return matchSearch && matchCat && matchStato && matchMonth;
+                return matchSearch && matchCat && matchStato;
             });
 
             filteredList.sort((a, b) => {
@@ -1018,28 +1042,25 @@
                 return 0;
             });
 
-            updateSortIcons();
-
             const total = filteredList.reduce((s, i) => s + (parseFloat(i.importo) || 0), 0);
             document.getElementById('filtered-count').innerText = filteredList.length;
             document.getElementById('filtered-total-amount').innerText = `€ ${total.toFixed(2)}`;
-            document.getElementById('tfoot-total-amount').innerHTML = `<b>€ ${total.toFixed(2)}</b>`;
 
             filteredList.forEach(item => {
                 const tr = document.createElement('tr');
                 const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
                 tr.innerHTML = `
-                    <td>${item.tipo === 'scontrino' ? '🧾 Scontrino' : '📄 Bolletta'}</td>
-                    <td><b>${item.ente}</b></td>
-                    <td>${item.categoria}</td>
-                    <td><b>€ ${parseFloat(item.importo).toFixed(2)}</b></td>
-                    <td>${formatDateToIT(item.dataEmissione)}</td>
-                    <td>${formatDateToIT(item.dataScadenza)}</td>
-                    <td><span class="status-badge ${badgeClass}">${item.stato}</span></td>
-                    <td>
+                    <td data-label="Tipo">${item.tipo === 'scontrino' ? '🧾 Scontrino' : '📄 Bolletta'}</td>
+                    <td data-label="Fornitore"><b>${item.ente}</b></td>
+                    <td data-label="Categoria">${item.categoria}</td>
+                    <td data-label="Importo"><b>€ ${parseFloat(item.importo).toFixed(2)}</b></td>
+                    <td data-label="Emissione">${formatDateToIT(item.dataEmissione)}</td>
+                    <td data-label="Scadenza">${formatDateToIT(item.dataScadenza)}</td>
+                    <td data-label="Stato"><span class="status-badge ${badgeClass}">${item.stato}</span></td>
+                    <td data-label="Azioni">
                         <div class="btn-actions-container">
-                            <button class="btn-edit" onclick="apriModalModifica('${item.idDoc}')">✏️</button>
-                            <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️</button>
+                            <button class="btn-edit" onclick="apriModalModifica('${item.idDoc}')">✏️ Modifica</button>
+                            <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️ Elimina</button>
                         </div>
                     </td>
                 `;
@@ -1063,10 +1084,10 @@
             Object.values(stats).sort((a,b) => b.conteggio - a.conteggio).forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><b>${item.nome}</b></td>
-                    <td>${item.macroArea}</td>
-                    <td><span class="status-badge status-paid">${item.conteggio} volte</span></td>
-                    <td><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
+                    <td data-label="Prodotto"><b>${item.nome}</b></td>
+                    <td data-label="Macro-Area">${item.macroArea}</td>
+                    <td data-label="Conteggio"><span class="status-badge status-paid">${item.conteggio} volte</span></td>
+                    <td data-label="Spesa"><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
                 `;
                 tbody.appendChild(tr);
             });
