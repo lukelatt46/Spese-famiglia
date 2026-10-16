@@ -967,97 +967,97 @@
             }
         }
 
-        /* CHIAMATA ROBUSTA A GEMINI 1.5 FLASH VISION API */
-        async function analizzaConGeminiVision() {
-            if(!currentFileData) {
-                alert('Seleziona prima un file!');
-                return;
-            }
+        /* CHIAMATA ROBUSTA A GEMINI VISION API */
+async function analizzaConGeminiVision() {
+    if(!currentFileData) {
+        alert('Seleziona prima un file!');
+        return;
+    }
 
-            const apiKey = document.getElementById('gemini-api-key').value.trim();
-            if(!apiKey) {
-                alert('Inserisci la tua API Key Gemini per procedere con la Vision AI!');
-                return;
-            }
+    const apiKey = document.getElementById('gemini-api-key').value.trim();
+    if(!apiKey) {
+        alert('Inserisci la tua API Key Gemini per procedere con la Vision AI!');
+        return;
+    }
 
-            const loader = document.getElementById('loading-indicator');
-            const btnAnalyze = document.getElementById('btn-analyze');
-            loader.style.display = 'block';
-            btnAnalyze.disabled = true;
+    const loader = document.getElementById('loading-indicator');
+    const btnAnalyze = document.getElementById('btn-analyze');
+    loader.style.display = 'block';
+    btnAnalyze.disabled = true;
 
-            try {
-                const base64Image = currentFileData.split(',')[1];
-                
-                const promptText = `
-                Analizza questa immagine di uno scontrino o bolletta.
-                Estrai i dati e rispondi con una struttura JSON con i seguenti campi:
-                - "ente": nome del negozio o fornitore (es. ACTION, Eurospin)
-                - "categoria": una tra "Spesa Alimentare", "Luce / Elettricità", "Gas / Gas Naturale", "Acqua", "Internet / Telefono", "Altro"
-                - "importo": totale complessivo in numero float
-                - "dataEmissione": data in formato YYYY-MM-DD
-                - "dataScadenza": data in formato YYYY-MM-DD
-                - "articoli": array di oggetti con "nome" (senza codici a barre/EAN), "prezzo" (float), e "macroArea" (una tra "Alimentari", "Frutta e verdura", "Cura della casa", "Cura della persona", "Elettronica / Tech", "Cancelleria", "Altro")
-                `;
+    try {
+        const base64Image = currentFileData.split(',')[1];
+        
+        const promptText = `
+        Analizza questa immagine di uno scontrino o bolletta.
+        Estrai i dati e rispondi con una struttura JSON con i seguenti campi:
+        - "ente": nome del negozio o fornitore (es. ACTION, Eurospin)
+        - "categoria": una tra "Spesa Alimentare", "Luce / Elettricità", "Gas / Gas Naturale", "Acqua", "Internet / Telefono", "Altro"
+        - "importo": totale complessivo in numero float
+        - "dataEmissione": data in formato YYYY-MM-DD
+        - "dataScadenza": data in formato YYYY-MM-DD
+        - "articoli": array di oggetti con "nome" (senza codici a barre/EAN), "prezzo" (float), e "macroArea" (una tra "Alimentari", "Frutta e verdura", "Cura della casa", "Cura della persona", "Elettronica / Tech", "Cancelleria", "Altro")
+        `;
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                            ]
-                        }],
-                        generationConfig: {
-                            responseMimeType: "application/json"
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error?.message || `Errore HTTP ${response.status}`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json"
                 }
+            })
+        });
 
-                const result = await response.json();
-                loader.style.display = 'none';
-                btnAnalyze.disabled = false;
-
-                const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (candidateText) {
-                    const data = JSON.parse(candidateText);
-                    
-                    document.getElementById('ai-status-badge').style.display = 'inline-block';
-                    
-                    if(data.ente) document.getElementById('field-ente').value = data.ente;
-                    if(data.categoria) document.getElementById('field-categoria').value = data.categoria;
-                    if(data.importo) document.getElementById('field-importo').value = parseFloat(data.importo).toFixed(2);
-                    if(data.dataEmissione) document.getElementById('field-data-emissione').value = data.dataEmissione;
-                    if(data.dataScadenza) document.getElementById('field-data-scadenza').value = data.dataScadenza;
-
-                    const container = document.getElementById('articoli-list-container');
-                    container.innerHTML = '';
-                    if(data.articoli && data.articoli.length > 0) {
-                        data.articoli.forEach(art => {
-                            aggiungiRigaArticolo(art.nome, art.macroArea || 'Altro', parseFloat(art.prezzo).toFixed(2));
-                        });
-                    } else {
-                        aggiungiRigaArticolo();
-                    }
-
-                } else {
-                    alert('L\'AI non è riuscita ad analizzare la struttura dell\'immagine. Riprova con una foto più ravvicinata.');
-                }
-
-            } catch(err) {
-                loader.style.display = 'none';
-                btnAnalyze.disabled = false;
-                alert('Errore Vision AI: ' + err.message);
-            }
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || `Errore HTTP ${response.status}`);
         }
+
+        const result = await response.json();
+        loader.style.display = 'none';
+        btnAnalyze.disabled = false;
+
+        const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (candidateText) {
+            const data = JSON.parse(candidateText);
+            
+            document.getElementById('ai-status-badge').style.display = 'inline-block';
+            
+            if(data.ente) document.getElementById('field-ente').value = data.ente;
+            if(data.categoria) document.getElementById('field-categoria').value = data.categoria;
+            if(data.importo) document.getElementById('field-importo').value = parseFloat(data.importo).toFixed(2);
+            if(data.dataEmissione) document.getElementById('field-data-emissione').value = data.dataEmissione;
+            if(data.dataScadenza) document.getElementById('field-data-scadenza').value = data.dataScadenza;
+
+            const container = document.getElementById('articoli-list-container');
+            container.innerHTML = '';
+            if(data.articoli && data.articoli.length > 0) {
+                data.articoli.forEach(art => {
+                    aggiungiRigaArticolo(art.nome, art.macroArea || 'Altro', parseFloat(art.prezzo).toFixed(2));
+                });
+            } else {
+                aggiungiRigaArticolo();
+            }
+
+        } else {
+            alert('L\'AI non è riuscita ad analizzare la struttura dell\'immagine. Riprova con una foto più ravvicinata.');
+        }
+
+    } catch(err) {
+        loader.style.display = 'none';
+        btnAnalyze.disabled = false;
+        alert('Errore Vision AI: ' + err.message);
+    }
+}
 
         function sortTable(column) {
             if (sortColumn === column) sortAscending = !sortAscending;
