@@ -67,14 +67,16 @@
 
     <style>
         :root {
-            --primary-color: #5142e6;
-            --primary-hover: #4132d6;
-            --bg-color: #f4f5fa;
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
             --card-bg: #ffffff;
             --border-color: #e2e8f0;
-            --accent-gold: #c5820f;
-            --text-color: #333333;
-            --text-muted: #666666;
+            --accent-gold: #d97706;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
         }
 
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
@@ -85,21 +87,21 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #5142e6 0%, #1e1b4b 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #1e1b4b 100%);
             padding: 16px;
         }
 
         .auth-card {
             background: white;
-            padding: 24px;
-            border-radius: 16px;
+            padding: 28px;
+            border-radius: 20px;
             max-width: 400px;
             width: 100%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
             text-align: center;
         }
 
-        .auth-card h2 { color: var(--primary-color); margin-bottom: 8px; font-size: 1.5rem; }
+        .auth-card h2 { color: var(--primary-color); margin-bottom: 6px; font-size: 1.6rem; font-weight: 800; }
         .auth-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
 
         header {
@@ -112,20 +114,21 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
 
         @media (min-width: 768px) {
-            header { flex-direction: row; justify-content: space-between; align-items: center; padding: 16px 32px; }
+            header { flex-direction: row; justify-content: space-between; align-items: center; padding: 14px 32px; }
         }
 
         .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .brand { font-size: 1.2rem; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
+        .brand { font-size: 1.25rem; font-weight: 800; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
 
         nav { 
             display: flex; 
             gap: 6px; 
             overflow-x: auto; 
-            padding-bottom: 4px;
+            padding-bottom: 2px;
             width: 100%;
             -webkit-overflow-scrolling: touch;
         }
@@ -134,46 +137,58 @@
             text-decoration: none; 
             color: var(--text-muted); 
             font-weight: 600; 
-            padding: 8px 12px; 
-            border-radius: 20px; 
+            padding: 8px 14px; 
+            border-radius: 12px; 
             cursor: pointer; 
-            transition: 0.2s;
+            transition: all 0.2s;
             white-space: nowrap;
             font-size: 0.85rem;
             background: #f1f5f9;
         }
-        .nav-link.active { color: white; background-color: var(--primary-color); }
+        .nav-link.active { color: white; background-color: var(--primary-color); box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
 
-        .container { max-width: 1200px; margin: 16px auto; padding: 0 12px; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
         .page-section { display: none; }
         .page-section.active { display: block; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; } }
+        /* KPIS PROFESSIONALI DASHBOARD */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; } }
 
-        .stat-card { background: white; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .stat-card h4 { color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px; }
-        .stat-card .amount { font-size: 1.3rem; font-weight: bold; color: var(--text-color); }
+        .stat-card { 
+            background: white; 
+            padding: 16px; 
+            border-radius: 14px; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stat-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .stat-card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .stat-card h4 { color: var(--text-muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .amount { font-size: 1.4rem; font-weight: 800; color: var(--text-color); margin-top: 4px; }
 
         .dashboard-grid, .scanner-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 850px) { 
             .dashboard-grid, .scanner-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } 
         }
 
-        .card { background: white; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 16px; }
+        .card { background: white; padding: 18px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 16px; }
         @media (min-width: 768px) { .card { padding: 24px; margin-bottom: 20px; } }
 
         .doc-type-selector { display: flex; gap: 8px; margin-bottom: 16px; }
-        .btn-type { flex: 1; padding: 12px 8px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); text-align: center; font-size: 0.85rem; }
+        .btn-type { flex: 1; padding: 12px 8px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 10px; cursor: pointer; font-weight: 600; color: var(--text-muted); text-align: center; font-size: 0.85rem; }
         .btn-type.active { border-color: var(--accent-gold); background: #fffdf5; color: var(--accent-gold); }
 
-        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px 10px; text-align: center; background: #fafafa; cursor: pointer; position: relative; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px 12px; text-align: center; background: #fafafa; cursor: pointer; position: relative; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #preview-container { width: 100%; max-height: 300px; overflow-y: auto; display: none; }
-        #preview-container img, #preview-container canvas { max-width: 100%; border-radius: 8px; }
+        #preview-container img, #preview-container canvas { max-width: 100%; border-radius: 10px; }
 
-        .btn-primary { width: 100%; background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 0.95rem; cursor: pointer; margin-top: 10px; min-height: 48px; }
-        .btn-secondary { width: 100%; background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px; min-height: 44px; }
-        .btn-gold { background: var(--accent-gold); }
+        .btn-primary { width: 100%; background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 10px; min-height: 48px; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
+        .btn-secondary { width: 100%; background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px; min-height: 44px; }
+        .btn-gold { background: var(--accent-gold); box-shadow: 0 4px 12px rgba(217,119,6,0.25); }
         .btn-sm { padding: 6px 12px; font-size: 0.8rem; width: auto; margin: 0; }
 
         .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -181,16 +196,22 @@
 
         .form-group { margin-bottom: 12px; text-align: left; }
         .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
-        .form-control { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; background: #fff; min-height: 44px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.95rem; background: #fff; min-height: 44px; }
 
-        .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+        .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); }
         @media (min-width: 600px) { .filters-bar { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
 
-        .summary-box { display: flex; align-items: center; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+        .summary-box { display: flex; align-items: center; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
         .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
-        .summary-box .total-amount { font-size: 1.15rem; font-weight: 800; color: var(--primary-color); }
+        .summary-box .total-amount { font-size: 1.2rem; font-weight: 800; color: var(--primary-color); }
 
-        /* TABELLA RESPONSIVE E STILI ORDINAMENTO */
+        /* LISTA RECENTI STILE BANKING */
+        .recent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #f1f5f9; }
+        .recent-item-info { display: flex; align-items: center; gap: 10px; }
+        .recent-item-icon { width: 34px; height: 34px; border-radius: 8px; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+
+        /* TABELLA RESPONSIVE MOBILE */
         .table-responsive { width: 100%; overflow-x: auto; }
         
         @media (max-width: 600px) {
@@ -199,10 +220,10 @@
             tr { 
                 background: #fff; 
                 border: 1px solid var(--border-color); 
-                border-radius: 10px; 
+                border-radius: 12px; 
                 padding: 12px; 
-                margin-bottom: 12px; 
-                box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
+                margin-bottom: 10px; 
+                box-shadow: 0 1px 3px rgba(0,0,0,0.02); 
             }
             td { 
                 display: flex; 
@@ -235,15 +256,15 @@
         .status-paid { background: #dcfce7; color: #166534; }
 
         .btn-actions-container { display: flex; gap: 8px; width: 100%; justify-content: flex-end; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
 
-        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
         .modal-backdrop.active { display: flex; }
-        .modal-content { background: white; padding: 20px; border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 22px; border-radius: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
 
-        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: #f8fafc; }
-        .user-pill { background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; color: #475569; display: flex; align-items: center; gap: 6px; }
+        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; background: #f8fafc; }
+        .user-pill { background: #f1f5f9; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 6px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -252,7 +273,7 @@
     <div id="auth-section">
         <div class="auth-card">
             <h2>🏠 FamilyBudget</h2>
-            <p>Accedi con Email e Password per sincronizzare PC e Smartphone.</p>
+            <p>Accedi per sincronizzare spese e bollette in tempo reale.</p>
             
             <div class="form-group">
                 <label>Email</label>
@@ -264,7 +285,7 @@
             </div>
 
             <button class="btn-primary" onclick="handleLogin()">Accedi</button>
-            <button class="btn-secondary" onclick="handleRegister()">Crea Nuovo Account</button>
+            <button class="btn-secondary" onclick="handleRegister()">Crea Account</button>
             <div id="auth-error" style="color:red; font-size:0.8rem; margin-top:10px;"></div>
         </div>
     </div>
@@ -276,7 +297,7 @@
                 <div class="brand">🏠 FamilyBudget</div>
                 <div class="user-pill">
                     👤 <span id="user-email-label">utente</span>
-                    <button onclick="handleLogout()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold; margin-left:4px;">Esci</button>
+                    <button onclick="handleLogout()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold; margin-left:6px;">Esci</button>
                 </div>
             </div>
             <nav>
@@ -290,44 +311,48 @@
 
         <div class="container">
 
-            <!-- DASHBOARD -->
+            <!-- DASHBOARD PROFESSIONALE -->
             <section id="sec-dashboard" class="page-section active">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h4>Mese Corrente</h4>
+                        <div class="stat-card-header">
+                            <h4>Mese Corrente</h4>
+                            <div class="stat-card-icon" style="background:#e0e7ff; color:#4f46e5;">📅</div>
+                        </div>
                         <div class="amount" id="dash-month-total">€ 0,00</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Da Pagare</h4>
+                        <div class="stat-card-header">
+                            <h4>Da Pagare</h4>
+                            <div class="stat-card-icon" style="background:#fef3c7; color:#d97706;">⏳</div>
+                        </div>
                         <div class="amount" style="color: #d97706;" id="dash-pending-total">€ 0,00</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Articoli</h4>
+                        <div class="stat-card-header">
+                            <h4>Articoli</h4>
+                            <div class="stat-card-icon" style="background:#dcfce7; color:#10b981;">🛒</div>
+                        </div>
                         <div class="amount" style="color: #10b981;" id="dash-items-count">0</div>
                     </div>
                     <div class="stat-card">
-                        <h4>Documenti</h4>
+                        <div class="stat-card-header">
+                            <h4>Documenti</h4>
+                            <div class="stat-card-icon" style="background:#f1f5f9; color:#64748b;">📂</div>
+                        </div>
                         <div class="amount" id="dash-docs-count">0</div>
                     </div>
                 </div>
 
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:12px;">Andamento Spese Mensili</h3>
-                        <canvas id="chartDashboard" height="150"></canvas>
+                        <h3 style="font-size:1.05rem; margin-bottom:14px; color:var(--text-color);">Andamento Spese Mensili</h3>
+                        <canvas id="chartDashboard" height="170"></canvas>
                     </div>
                     <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:12px;">Ultime Spese Registrate</h3>
-                        <div class="table-responsive">
-                            <table style="font-size: 0.85rem; min-width: 0;">
-                                <thead>
-                                    <tr>
-                                        <th>Fornitore</th>
-                                        <th>Importo</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dash-recent-tbody"></tbody>
-                            </table>
+                        <h3 style="font-size:1.05rem; margin-bottom:14px; color:var(--text-color);">Ultime Spese Registrate</h3>
+                        <div id="dash-recent-list" class="recent-list">
+                            <!-- Popolato Dinamicamente via JS -->
                         </div>
                     </div>
                 </div>
@@ -450,7 +475,7 @@
                 </div>
             </section>
 
-            <!-- SCADENZIARIO COMPLETO (FILTRI E ORDINAMENTO RIPRISTINATI) -->
+            <!-- SCADENZIARIO COMPLETO DI TUTTI I FILTRI -->
             <section id="sec-scadenzario" class="page-section">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -1036,7 +1061,6 @@
             }
         }
 
-        // FUNZIONI DI ORDINAMENTO TABELLA
         function sortTable(column) {
             if (sortColumn === column) sortAscending = !sortAscending;
             else { sortColumn = column; sortAscending = true; }
@@ -1050,7 +1074,6 @@
             });
         }
 
-        // RENDER SCADENZARIO COMPLETO DI TUTTI I FILTRI
         function renderScadenzario() {
             const tbody = document.getElementById('table-scadenzario-tbody');
             if (!tbody) return;
@@ -1143,20 +1166,109 @@
             });
         }
 
+        /* DASHBOARD AGGIORNATA E CORRETTA */
         function updateDashboard() {
             let totalMonth = 0, totalPending = 0;
             const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
 
             dbSpese.forEach(item => {
-                const d = new Date(item.dataEmissione || item.dataScadenza);
-                if(d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) totalMonth += item.importo;
-                if(item.stato === 'Da Pagare') totalPending += item.importo;
+                const dateRef = item.dataEmissione || item.dataScadenza;
+                if(dateRef) {
+                    const d = new Date(dateRef);
+                    if(!isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        totalMonth += parseFloat(item.importo) || 0;
+                    }
+                }
+                if(item.stato === 'Da Pagare') {
+                    totalPending += parseFloat(item.importo) || 0;
+                }
             });
 
             document.getElementById('dash-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
             document.getElementById('dash-pending-total').innerText = `€ ${totalPending.toFixed(2)}`;
             document.getElementById('dash-docs-count').innerText = dbSpese.length;
             document.getElementById('dash-items-count').innerText = dbArticoli.length;
+
+            // Riconstruzione lista ultime spese stile banking
+            const recentContainer = document.getElementById('dash-recent-list');
+            if (recentContainer) {
+                recentContainer.innerHTML = '';
+                if(dbSpese.length === 0) {
+                    recentContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">Nessuna spesa archiviata.</div>`;
+                } else {
+                    dbSpese.slice(0, 5).forEach(item => {
+                        const icon = item.tipo === 'scontrino' ? '🛒' : '⚡';
+                        const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
+                        
+                        const div = document.createElement('div');
+                        div.className = 'recent-item';
+                        div.innerHTML = `
+                            <div class="recent-item-info">
+                                <div class="recent-item-icon">${icon}</div>
+                                <div>
+                                    <div style="font-weight:700; font-size:0.9rem;">${item.ente}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">${formatDateToIT(item.dataScadenza || item.dataEmissione)}</div>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:800; font-size:0.95rem; color:var(--text-color);">€ ${parseFloat(item.importo).toFixed(2)}</div>
+                                <span class="status-badge ${badgeClass}" style="font-size:0.65rem; padding:2px 6px;">${item.stato}</span>
+                            </div>
+                        `;
+                        recentContainer.appendChild(div);
+                    });
+                }
+            }
+
+            renderDashboardChart();
+        }
+
+        function renderDashboardChart() {
+            const canvas = document.getElementById('chartDashboard');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const monthlyTotals = {};
+
+            dbSpese.forEach(item => {
+                const dateRef = item.dataEmissione || item.dataScadenza;
+                if(dateRef) {
+                    const d = new Date(dateRef);
+                    if(!isNaN(d.getTime())) {
+                        const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        if(!monthlyTotals[key]) monthlyTotals[key] = { label: monthLabel, amount: 0 };
+                        monthlyTotals[key].amount += parseFloat(item.importo) || 0;
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(monthlyTotals).sort();
+            const labels = sortedKeys.map(k => monthlyTotals[k].label);
+            const data = sortedKeys.map(k => monthlyTotals[k].amount);
+
+            if(chartDashInstance) chartDashInstance.destroy();
+
+            if (typeof Chart !== 'undefined') {
+                chartDashInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.length ? labels : ['Nessun Dato'],
+                        datasets: [{
+                            label: 'Totale Speso (€)',
+                            data: data.length ? data : [0],
+                            backgroundColor: '#4f46e5',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
         }
 
         function renderStatistiche() {
@@ -1174,7 +1286,7 @@
                     isMatch = dateRef.startsWith(selectedMonth);
                 }
                 if (isMatch) {
-                    categories[item.categoria] = (categories[item.categoria] || 0) + item.importo;
+                    categories[item.categoria] = (categories[item.categoria] || 0) + (parseFloat(item.importo) || 0);
                 }
             });
 
@@ -1186,7 +1298,7 @@
                         labels: Object.keys(categories).length ? Object.keys(categories) : ['Nessun Dato'],
                         datasets: [{
                             data: Object.keys(categories).length ? Object.values(categories) : [1],
-                            backgroundColor: ['#5142e6', '#c5820f', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
+                            backgroundColor: ['#4f46e5', '#d97706', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
                         }]
                     },
                     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
@@ -1203,7 +1315,7 @@
                             const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
                             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                             if (!utenzeMonthly[key]) utenzeMonthly[key] = { label: monthLabel, amount: 0 };
-                            utenzeMonthly[key].amount += item.importo;
+                            utenzeMonthly[key].amount += (parseFloat(item.importo) || 0);
                         }
                     }
                 }
@@ -1222,8 +1334,8 @@
                         datasets: [{
                             label: 'Spesa Utenze (€)',
                             data: barData.length ? barData : [0],
-                            backgroundColor: '#c5820f',
-                            borderRadius: 6
+                            backgroundColor: '#d97706',
+                            borderRadius: 8
                         }]
                     },
                     options: {
