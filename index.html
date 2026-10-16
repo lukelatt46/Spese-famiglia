@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FamilyBudget - Gestione Spese Cloud</title>
     
-    <!-- PDF.js e Tesseract.js -->
+    <!-- PDF.js e Tesseract.js (Fallback) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         try {
@@ -195,7 +195,7 @@
 
         .form-group { margin-bottom: 12px; text-align: left; }
         .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
-        .form-control { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.95rem; background: #fff; min-height: 44px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.9rem; background: #fff; min-height: 42px; }
 
         .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); }
         @media (min-width: 600px) { .filters-bar { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
@@ -209,12 +209,27 @@
         .recent-item-info { display: flex; align-items: center; gap: 10px; }
         .recent-item-icon { width: 34px; height: 34px; border-radius: 8px; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 
+        .item-card-row {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .item-card-row .full-width { grid-column: span 2; }
+        .item-card-row input, .item-card-row select { font-size: 0.85rem; padding: 8px; min-height: 38px; }
+
         .table-responsive { width: 100%; overflow-x: auto; }
         
         @media (max-width: 600px) {
-            table, thead, tbody, th, td, tr { display: block; }
-            thead { display: none; }
-            tr { 
+            .main-table, .main-table thead, .main-table tbody, .main-table th, .main-table td, .main-table tr { display: block; }
+            .main-table thead { display: none; }
+            .main-table tr { 
                 background: #fff; 
                 border: 1px solid var(--border-color); 
                 border-radius: 12px; 
@@ -222,7 +237,7 @@
                 margin-bottom: 10px; 
                 box-shadow: 0 1px 3px rgba(0,0,0,0.02); 
             }
-            td { 
+            .main-table td { 
                 display: flex; 
                 justify-content: space-between; 
                 align-items: center; 
@@ -230,8 +245,8 @@
                 border-bottom: 1px dashed #f1f5f9; 
                 font-size: 0.85rem; 
             }
-            td:last-child { border-bottom: none; padding-top: 10px; }
-            td::before { 
+            .main-table td:last-child { border-bottom: none; padding-top: 10px; }
+            .main-table td::before { 
                 content: attr(data-label); 
                 font-weight: 600; 
                 color: var(--text-muted); 
@@ -241,10 +256,10 @@
         }
 
         @media (min-width: 601px) {
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-            th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; user-select: none; transition: background 0.2s; }
-            th:hover { background: #edf2f7; color: var(--primary-color); }
+            .main-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .main-table th, .main-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+            .main-table th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; user-select: none; transition: background 0.2s; }
+            .main-table th:hover { background: #edf2f7; color: var(--primary-color); }
             tfoot td { background: #f8fafc; font-weight: bold; font-size: 0.95rem; border-top: 2px solid var(--border-color); }
         }
 
@@ -260,7 +275,7 @@
         .modal-backdrop.active { display: flex; }
         .modal-content { background: white; padding: 22px; border-radius: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
 
-        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; background: #f8fafc; }
+        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; background: #f8fafc; }
         .user-pill { background: #f1f5f9; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 6px; font-weight: 500; }
     </style>
 </head>
@@ -353,12 +368,17 @@
                 </div>
             </section>
 
-            <!-- SCANNER AI -->
+            <!-- SCANNER AI GEMINI VISION -->
             <section id="sec-scanner" class="page-section">
                 <div class="scanner-grid">
                     <div class="card">
-                        <h3 style="font-size:1.05rem;">✨ Scanner AI Documenti</h3>
-                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Carica foto o PDF scontrino/bolletta.</p>
+                        <h3 style="font-size:1.05rem;">✨ Scanner Vision AI</h3>
+                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Analisi intelligente di scontrini e bollette con Gemini Vision API.</p>
+
+                        <div class="form-group" style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--border-color);">
+                            <label style="color:var(--primary-color);">🔑 Chiave API Gemini (Google AI Studio)</label>
+                            <input type="password" id="gemini-api-key" class="form-control" placeholder="Incolla qui la tua API Key Gemini" onchange="salvaGeminiApiKey()">
+                        </div>
                         
                         <div class="doc-type-selector">
                             <div class="btn-type active" id="type-scontrino" onclick="setDocType('scontrino')">🧾 Scontrino</div>
@@ -374,24 +394,24 @@
                         </div>
                         <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
 
-                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConOCR()">✨ Analizza con AI</button>
+                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConGeminiVision()">✨ Analizza con Gemini AI</button>
                         <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo</button>
-                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi OCR in corso...</div>
+                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi Vision AI in corso...</div>
                     </div>
 
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <h3 style="font-size:1.05rem;">Verifica Dati</h3>
-                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Analizzato</span>
+                            <h3 style="font-size:1.05rem;">Verifica Dati Estratti</h3>
+                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Vision AI OK</span>
                         </div>
 
                         <div class="form-group">
                             <label>Fornitore / Negozio</label>
-                            <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Argos">
+                            <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Action">
                         </div>
 
                         <div class="form-group">
-                            <label>Categoria</label>
+                            <label>Categoria Generale</label>
                             <select id="field-categoria" class="form-control">
                                 <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
                                 <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
@@ -418,16 +438,14 @@
                             </div>
                         </div>
 
+                        <!-- DIVISORE E GESTIONE VOCI SCONTRINO -->
                         <div id="container-dettaglio-articoli" class="items-table-container">
-                            <h4 style="font-size:0.85rem; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>📦 Articoli Scontrino</span>
-                                <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi</button>
+                            <h4 style="font-size:0.85rem; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>📦 Voci e Divisione Spesa</span>
+                                <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi Voce</button>
                             </h4>
-                            <div class="table-responsive">
-                                <table class="items-table">
-                                    <tbody id="tbody-articoli-scontrino"></tbody>
-                                </table>
-                            </div>
+                            
+                            <div id="articoli-list-container"></div>
                         </div>
 
                         <div class="form-group" style="margin-top:12px;">
@@ -449,11 +467,12 @@
                     <div class="card">
                         <h3 style="font-size:1.05rem; margin-bottom:12px;">🏆 Prodotti Più Acquistati</h3>
                         <div class="table-responsive">
-                            <table>
+                            <table class="main-table">
                                 <thead>
                                     <tr>
                                         <th>Prodotto</th>
                                         <th>Macro-Area</th>
+                                        <th>Assegnato a</th>
                                         <th>Conteggio</th>
                                         <th>Spesa</th>
                                     </tr>
@@ -481,7 +500,7 @@
                     <div class="filters-bar" style="margin-top: 12px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-size:0.75rem; color:#64748b;">🔍 Cerca Fornitore</label>
-                            <input type="text" id="filter-search" class="form-control" placeholder="Es. Octopus..." oninput="renderScadenzario()">
+                            <input type="text" id="filter-search" class="form-control" placeholder="Es. Action..." oninput="renderScadenzario()">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-size:0.75rem; color:#64748b;">📂 Categoria</label>
@@ -515,7 +534,7 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table>
+                        <table class="main-table">
                             <thead>
                                 <tr>
                                     <th onclick="sortTable('tipo')">Tipo <span id="sort-icon-tipo">↕</span></th>
@@ -629,7 +648,6 @@
         let dbArticoli = [];
         let currentDocType = 'scontrino';
         let currentFileData = null;
-        let processedCanvasData = null; // Canvas ottimizzato per OCR
         let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
@@ -638,8 +656,22 @@
         let sortColumn = 'dataScadenza';
         let sortAscending = false;
 
-        const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Altro'];
+        const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Elettronica / Tech', 'Cancelleria', 'Altro'];
+        const MEMBRI_FAMIGLIA = ['Famiglia (Comune)', 'Luca', 'Moglie', 'Lavoro / Altro'];
         const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+        // Caricamento Chiave API salvata
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if(savedKey) {
+                document.getElementById('gemini-api-key').value = savedKey;
+            }
+        });
+
+        function salvaGeminiApiKey() {
+            const key = document.getElementById('gemini-api-key').value.trim();
+            localStorage.setItem('gemini_api_key', key);
+        }
 
         async function handleLogin() {
             const e = document.getElementById('login-email').value;
@@ -732,10 +764,11 @@
             });
 
             if (currentDocType === 'scontrino') {
-                const rows = document.querySelectorAll('#tbody-articoli-scontrino tr');
+                const rows = document.querySelectorAll('#articoli-list-container .item-card-row');
                 for(let r of rows) {
                     const nome = r.querySelector('.item-name')?.value.trim();
                     const macro = r.querySelector('.item-macro')?.value;
+                    const assegno = r.querySelector('.item-assign')?.value;
                     const prezzo = parseFloat(r.querySelector('.item-price')?.value);
 
                     if (nome && !isNaN(prezzo)) {
@@ -744,6 +777,7 @@
                             data: dataScadenza || new Date().toISOString().split('T')[0],
                             nome: nome,
                             macroArea: macro,
+                            assegnatoA: assegno || 'Famiglia (Comune)',
                             prezzo: prezzo
                         });
                     }
@@ -842,31 +876,45 @@
             }
         }
 
-        function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '') {
-            const tbody = document.getElementById('tbody-articoli-scontrino');
-            if (!tbody) return;
-            const tr = document.createElement('tr');
-            let options = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
+        function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '', assegnatoA = 'Famiglia (Comune)') {
+            const container = document.getElementById('articoli-list-container');
+            if (!container) return;
 
-            tr.innerHTML = `
-                <td style="padding:4px 0;"><input type="text" class="item-name form-control" placeholder="es. Latte" value="${nome}"></td>
-                <td style="padding:4px 0;"><select class="item-macro form-control">${options}</select></td>
-                <td style="padding:4px 0;"><input type="number" step="0.01" class="item-price form-control" placeholder="0.00" value="${prezzo}"></td>
-                <td style="padding:4px 0; text-align:center;"><button type="button" onclick="this.closest('tr').remove()" style="background:none; border:none; color:red; font-size:1.2rem;">✖</button></td>
+            const div = document.createElement('div');
+            div.className = 'item-card-row';
+
+            let optionsMacro = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
+            let optionsAssign = MEMBRI_FAMIGLIA.map(m => `<option value="${m}" ${m === assegnatoA ? 'selected' : ''}>${m}</option>`).join('');
+
+            div.innerHTML = `
+                <div class="full-width">
+                    <input type="text" class="item-name form-control" placeholder="Descrizione Articolo" value="${nome}">
+                </div>
+                <div>
+                    <select class="item-macro form-control">${optionsMacro}</select>
+                </div>
+                <div>
+                    <select class="item-assign form-control" title="Dividi Spesa / Assegnato A">${optionsAssign}</select>
+                </div>
+                <div>
+                    <input type="number" step="0.01" class="item-price form-control" placeholder="€ 0.00" value="${prezzo}">
+                </div>
+                <div style="text-align:right;">
+                    <button type="button" onclick="this.closest('.item-card-row').remove()" style="background:none; border:none; color:red; font-size:1.2rem; cursor:pointer;">✖</button>
+                </div>
             `;
-            tbody.appendChild(tr);
+            container.appendChild(div);
         }
 
         function resetAndUploadNew() {
             currentFileData = null;
-            processedCanvasData = null;
             pdfExtractedText = "";
             document.getElementById('file-input').value = '';
             document.getElementById('preview-container').innerHTML = '';
             document.getElementById('preview-container').style.display = 'none';
             document.getElementById('upload-prompt').style.display = 'block';
             document.getElementById('ai-status-badge').style.display = 'none';
-            document.getElementById('tbody-articoli-scontrino').innerHTML = '';
+            document.getElementById('articoli-list-container').innerHTML = '';
 
             document.getElementById('field-ente').value = '';
             document.getElementById('field-importo').value = '';
@@ -879,30 +927,6 @@
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if(file) processFile(file);
-        }
-
-        /* PRE-ELABORAZIONE IMMAGINE PER MASSIMIZZARE LETTURA OCR SCONTRINI */
-        function preprocessImageForOCR(imgElement) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = imgElement.naturalWidth || imgElement.width;
-            canvas.height = imgElement.naturalHeight || imgElement.height;
-
-            ctx.drawImage(imgElement, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const d = imgData.data;
-
-            // Binarizzazione ad alto contrasto (Bianco e Nero puro)
-            for (let i = 0; i < d.length; i += 4) {
-                const v = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-                const threshold = 140; // Soglia contrasto
-                const bw = v > threshold ? 255 : 0;
-                d[i] = bw;
-                d[i + 1] = bw;
-                d[i + 2] = bw;
-            }
-            ctx.putImageData(imgData, 0, 0);
-            return canvas.toDataURL('image/png');
         }
 
         function processFile(file) {
@@ -919,17 +943,6 @@
                     const typedarray = new Uint8Array(e.target.result);
                     if (typeof pdfjsLib !== 'undefined') {
                         pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                            let textPromises = [];
-                            for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
-                                textPromises.push(pdf.getPage(i).then(page => {
-                                    return page.getTextContent().then(textContent => textContent.items.map(item => item.str).join(' '));
-                                }));
-                            }
-                            
-                            Promise.all(textPromises).then(pagesText => {
-                                pdfExtractedText = pagesText.join('\n');
-                            });
-
                             pdf.getPage(1).then(page => {
                                 const viewport = page.getViewport({ scale: 1.5 });
                                 const canvas = document.createElement('canvas');
@@ -939,8 +952,7 @@
 
                                 page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
                                     previewContainer.appendChild(canvas);
-                                    currentFileData = canvas.toDataURL('image/png');
-                                    processedCanvasData = currentFileData;
+                                    currentFileData = canvas.toDataURL('image/jpeg', 0.85);
                                 });
                             });
                         });
@@ -952,19 +964,23 @@
                 reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.onload = function() {
-                        currentFileData = e.target.result;
-                        processedCanvasData = preprocessImageForOCR(img);
-                    };
                     previewContainer.appendChild(img);
+                    currentFileData = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        async function analizzaConOCR() {
+        /* CHIAMATA DIRETTA A GEMINI 1.5 FLASH VISION API */
+        async function analizzaConGeminiVision() {
             if(!currentFileData) {
                 alert('Seleziona prima un file!');
+                return;
+            }
+
+            const apiKey = document.getElementById('gemini-api-key').value.trim();
+            if(!apiKey) {
+                alert('Inserisci la tua API Key Gemini per procedere con la Vision AI!');
                 return;
             }
 
@@ -974,134 +990,81 @@
             btnAnalyze.disabled = true;
 
             try {
-                let textToParse = "";
-
-                if (pdfExtractedText && pdfExtractedText.trim().length > 20) {
-                    textToParse = pdfExtractedText;
-                } else if (typeof Tesseract !== 'undefined') {
-                    // Usiamo prima l'immagine ad alto contrasto
-                    const imageToUse = processedCanvasData || currentFileData;
-                    const { data: { text } } = await Tesseract.recognize(imageToUse, 'ita+eng');
-                    textToParse = text;
+                const base64Image = currentFileData.split(',')[1];
+                
+                const promptText = `
+                Analizza questa immagine di un documento fiscale (scontrino o bolletta).
+                Estrai i dati e rispondi ESCLUSIVAMENTE con un JSON valido con questo formato esatto:
+                {
+                  "ente": "Nome del negozio o fornitore (es. ACTION, Eurospin, Octopus)",
+                  "categoria": "Una tra: Spesa Alimentare, Luce / Elettricità, Gas / Gas Naturale, Acqua, Internet / Telefono, Altro",
+                  "importo": 0.00 (numero float con il totale complessivo),
+                  "dataEmissione": "YYYY-MM-DD",
+                  "dataScadenza": "YYYY-MM-DD",
+                  "articoli": [
+                    {
+                      "nome": "Nome pulito del prodotto senza codici a barre/EAN",
+                      "prezzo": 0.00,
+                      "macroArea": "Una tra: Alimentari, Frutta e verdura, Cura della casa, Cura della persona, Elettronica / Tech, Cancelleria, Altro"
+                    }
+                  ]
                 }
+                Se non trovi alcuni articoli o è una bolletta, lascia "articoli": [].
+                `;
 
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                            ]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
                 loader.style.display = 'none';
                 btnAnalyze.disabled = false;
-                document.getElementById('ai-status-badge').style.display = 'inline-block';
 
-                parseExtractedText(textToParse);
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    let rawText = result.candidates[0].content.parts[0].text;
+                    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    
+                    const data = JSON.parse(rawText);
+                    
+                    document.getElementById('ai-status-badge').style.display = 'inline-block';
+                    
+                    // Popolamento campi
+                    if(data.ente) document.getElementById('field-ente').value = data.ente;
+                    if(data.categoria) document.getElementById('field-categoria').value = data.categoria;
+                    if(data.importo) document.getElementById('field-importo').value = parseFloat(data.importo).toFixed(2);
+                    if(data.dataEmissione) document.getElementById('field-data-emissione').value = data.dataEmissione;
+                    if(data.dataScadenza) document.getElementById('field-data-scadenza').value = data.dataScadenza;
+
+                    // Popolamento Articoli
+                    const container = document.getElementById('articoli-list-container');
+                    container.innerHTML = '';
+                    if(data.articoli && data.articoli.length > 0) {
+                        data.articoli.forEach(art => {
+                            aggiungiRigaArticolo(art.nome, art.macroArea || 'Altro', parseFloat(art.prezzo).toFixed(2));
+                        });
+                    } else {
+                        aggiungiRigaArticolo();
+                    }
+
+                } else {
+                    alert('Nessun dato estratto dall\'immagine. Riprova con una foto più nitida.');
+                }
+
             } catch(err) {
                 loader.style.display = 'none';
                 btnAnalyze.disabled = false;
-                alert('Errore durante la lettura del documento.');
-            }
-        }
-
-        function guessMacroArea(prodotto) {
-            const p = prodotto.toLowerCase();
-            if (/mela|pere|banana|frutta|insalata|pomodor|zucchine|carote|verdura|oragano|limoni/i.test(p)) return 'Frutta e verdura';
-            if (/detersivo|scottex|carta|candeggina|sgrassat|piatti|lavatrice|spugna|wc/i.test(p)) return 'Cura della casa';
-            if (/shampoo|sapone|bagnoschiuma|dentifricio|assorbenti|crema|rasoio/i.test(p)) return 'Cura della persona';
-            if (/pane|latte|pasta|riso|carne|pollo|prosciutto|formaggio|mozzarella|uova|biscotti|olio|acqua|caffè|passata/i.test(p)) return 'Alimentari';
-            return 'Altro';
-        }
-
-        /* METODO ESTRAZIONE AVANZATO CON REGEX RESISTENTE A SCONTRINI SFOCATI */
-        function parseExtractedText(text) {
-            if (!text) return;
-            
-            // Pulizia preventiva testo
-            const cleanText = text.replace(/€/g, '').replace(/\*/g, '');
-            const textLower = cleanText.toLowerCase();
-            const lines = cleanText.split('\n');
-
-            // Ente / Supermercato
-            if (/octopus/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Octopus Energy';
-                document.getElementById('field-categoria').value = 'Luce / Elettricità';
-            } else if (/argos/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'Argos';
-                document.getElementById('field-categoria').value = 'Gas / Gas Naturale';
-            } else if (/eurospin/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'EUROSPIN';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-            } else if (/coop/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'COOP';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-            } else if (/conad/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'CONAD';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-            } else if (/lidl/i.test(textLower)) {
-                document.getElementById('field-ente').value = 'LIDL';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-            } else {
-                // Tentativo estrazione primo nome negozio in alto
-                for(let l of lines.slice(0, 4)) {
-                    const headerStr = l.trim();
-                    if(headerStr.length > 3 && !/scontrino|fiscale|strada|via|p\.iva|tel|benvenuti/i.test(headerStr)) {
-                        document.getElementById('field-ente').value = headerStr.toUpperCase();
-                        break;
-                    }
-                }
-            }
-
-            // Importo Totale (ricerca tollerante)
-            const matchTotEsplicito = cleanText.match(/(?:totale|dovrai pagare|importo|saldo)\s*[:\s|]*=?\s*(\d{1,4}[\.,]\d{2})/i);
-            if (matchTotEsplicito) {
-                document.getElementById('field-importo').value = parseFloat(matchTotEsplicito[1].replace(',', '.')).toFixed(2);
-            } else {
-                // Cerca l'importo decimale isolato più alto in basso nello scontrino
-                const numbers = [];
-                const genericRegex = /(\d{1,4}[\.,]\d{2})/g;
-                let matchNum;
-                while ((matchNum = genericRegex.exec(cleanText)) !== null) {
-                    const val = parseFloat(matchNum[1].replace(',', '.'));
-                    if(!isNaN(val) && val > 0 && val < 1000) numbers.push(val);
-                }
-                if (numbers.length > 0) {
-                    document.getElementById('field-importo').value = Math.max(...numbers).toFixed(2);
-                }
-            }
-
-            // Date
-            const matchDataFattura = cleanText.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
-            if (matchDataFattura) {
-                const dateFormatted = convertToInputDate(matchDataFattura[1], matchDataFattura[2], matchDataFattura[3]);
-                document.getElementById('field-data-scadenza').value = dateFormatted;
-                document.getElementById('field-data-emissione').value = dateFormatted;
-            } else {
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('field-data-scadenza').value = today;
-                document.getElementById('field-data-emissione').value = today;
-            }
-
-            // Estrazione Articoli Scontrino
-            if (currentDocType === 'scontrino') {
-                const tbody = document.getElementById('tbody-articoli-scontrino');
-                if (tbody) {
-                    tbody.innerHTML = '';
-                    lines.forEach(line => {
-                        const trimmedLine = line.trim();
-                        // Cerca una riga con testo seguito da un prezzo decimale
-                        const lineMatch = trimmedLine.match(/^(.+?)\s+(\d{1,3}[\.,]\d{2})\s*[a-zA-Z]?$/);
-                        
-                        if (lineMatch) {
-                            const nomeProd = lineMatch[1].trim();
-                            const prezzoProd = parseFloat(lineMatch[2].replace(',', '.'));
-
-                            if (!isNaN(prezzoProd) && prezzoProd > 0 && prezzoProd < 200) {
-                                if (nomeProd.length >= 2 && !/totale|subtotale|contanti|resto|bancomat|carta|p\.iva|sconto|iva|euro|punti|importo/i.test(nomeProd)) {
-                                    const macro = guessMacroArea(nomeProd);
-                                    aggiungiRigaArticolo(nomeProd, macro, prezzoProd.toFixed(2));
-                                }
-                            }
-                        }
-                    });
-
-                    if (tbody.children.length === 0) {
-                        aggiungiRigaArticolo();
-                    }
-                }
+                alert('Errore Vision AI: Verifica la tua API Key o la connessione internet.');
             }
         }
 
@@ -1193,7 +1156,7 @@
             const stats = {};
             dbArticoli.forEach(art => {
                 const key = art.nome.toLowerCase();
-                if (!stats[key]) stats[key] = { nome: art.nome, macroArea: art.macroArea, conteggio: 0, spesaTotale: 0 };
+                if (!stats[key]) stats[key] = { nome: art.nome, macroArea: art.macroArea, assegnatoA: art.assegnatoA || 'Famiglia', conteggio: 0, spesaTotale: 0 };
                 stats[key].conteggio += 1;
                 stats[key].spesaTotale += art.prezzo;
             });
@@ -1203,6 +1166,7 @@
                 tr.innerHTML = `
                     <td data-label="Prodotto"><b>${item.nome}</b></td>
                     <td data-label="Macro-Area">${item.macroArea}</td>
+                    <td data-label="Assegnato a"><span class="status-badge status-pending">${item.assegnatoA}</span></td>
                     <td data-label="Conteggio"><span class="status-badge status-paid">${item.conteggio} volte</span></td>
                     <td data-label="Spesa"><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
                 `;
