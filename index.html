@@ -190,7 +190,7 @@
         .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
         .summary-box .total-amount { font-size: 1.15rem; font-weight: 800; color: var(--primary-color); }
 
-        /* TABELLA RESPONSIVE MOBILE - STILE CARD */
+        /* TABELLA RESPONSIVE MOBILE */
         .table-responsive { width: 100%; overflow-x: auto; }
         
         @media (max-width: 600px) {
@@ -506,11 +506,27 @@
                 </div>
             </section>
 
-            <!-- STATISTICHE UTENZE -->
+            <!-- STATISTICHE UTENZE (RIPRISTINATA ED EVOLUTA) -->
             <section id="sec-statistiche" class="page-section">
                 <div class="card">
-                    <h3 style="font-size:1.05rem; margin-bottom:12px;">📊 Ripartizione Utenze</h3>
-                    <canvas id="chartStatistiche" height="140"></canvas>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                        <h3 style="font-size:1.05rem;">📊 Ripartizione & Analisi Utenze</h3>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="font-size:0.8rem; font-weight:600; color:#475569;">Filtra Mese:</label>
+                            <input type="month" id="filter-stat-month" class="form-control" style="padding:6px 10px; min-height:auto; width:auto;" onchange="renderStatistiche()">
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="margin-top:16px;">
+                        <div class="card" style="margin-bottom:0;">
+                            <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Ripartizione Spese per Categoria</h4>
+                            <canvas id="chartStatistiche" height="200"></canvas>
+                        </div>
+                        <div class="card" style="margin-bottom:0;">
+                            <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Storico Mensile Utenze</h4>
+                            <canvas id="chartUtenzeStorico" height="200"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -581,6 +597,7 @@
         let pdfExtractedText = "";
         let chartDashInstance = null;
         let chartStatInstance = null;
+        let chartUtenzeStoricoInstance = null;
         let chartMacroInstance = null;
         let sortColumn = 'dataScadenza';
         let sortAscending = false;
@@ -619,6 +636,7 @@
                 dbSpese = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
                 updateDashboard();
                 renderScadenzario();
+                renderStatistiche();
             });
 
             onSnapshot(collection(window.fbDb, "articoli"), (snapshot) => {
@@ -1109,7 +1127,84 @@
             document.getElementById('dash-items-count').innerText = dbArticoli.length;
         }
 
-        function renderStatistiche() {}
+        // STATISTICHE UTENZE EVOLUTE CON FILTRO MESE/ANNO E DOPPIO GRAFICO
+        function renderStatistiche() {
+            const canvasPie = document.getElementById('chartStatistiche');
+            const canvasBar = document.getElementById('chartUtenzeStorico');
+            if (!canvasPie || !canvasBar) return;
+
+            const selectedMonth = document.getElementById('filter-stat-month')?.value || '';
+
+            // 1. Dati Categorie (Filtrati o Totali)
+            const categories = {};
+            dbSpese.forEach(item => {
+                const dateRef = item.dataEmissione || item.dataScadenza;
+                let isMatch = true;
+                if (selectedMonth && dateRef) {
+                    isMatch = dateRef.startsWith(selectedMonth);
+                }
+                if (isMatch) {
+                    categories[item.categoria] = (categories[item.categoria] || 0) + item.importo;
+                }
+            });
+
+            if (chartStatInstance) chartStatInstance.destroy();
+            if (typeof Chart !== 'undefined') {
+                chartStatInstance = new Chart(canvasPie.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(categories).length ? Object.keys(categories) : ['Nessun Dato'],
+                        datasets: [{
+                            data: Object.keys(categories).length ? Object.values(categories) : [1],
+                            backgroundColor: ['#5142e6', '#c5820f', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            // 2. Dati Storico Mensile Utenze (Luce, Gas, Acqua, Internet)
+            const utenzeMonthly = {};
+            dbSpese.forEach(item => {
+                if (/Luce|Gas|Acqua|Internet/i.test(item.categoria)) {
+                    const dateRef = item.dataEmissione || item.dataScadenza;
+                    if (dateRef) {
+                        const d = new Date(dateRef);
+                        if (!isNaN(d.getTime())) {
+                            const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
+                            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            if (!utenzeMonthly[key]) utenzeMonthly[key] = { label: monthLabel, amount: 0 };
+                            utenzeMonthly[key].amount += item.importo;
+                        }
+                    }
+                }
+            });
+
+            const sortedKeys = Object.keys(utenzeMonthly).sort();
+            const barLabels = sortedKeys.map(k => utenzeMonthly[k].label);
+            const barData = sortedKeys.map(k => utenzeMonthly[k].amount);
+
+            if (chartUtenzeStoricoInstance) chartUtenzeStoricoInstance.destroy();
+            if (typeof Chart !== 'undefined') {
+                chartUtenzeStoricoInstance = new Chart(canvasBar.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: barLabels.length ? barLabels : ['Nessun Dato'],
+                        datasets: [{
+                            label: 'Spesa Utenze (€)',
+                            data: barData.length ? barData : [0],
+                            backgroundColor: '#c5820f',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
     </script>
 </body>
 </html>
