@@ -1,1357 +1,959 @@
 <!DOCTYPE html>
+
 <html lang="it">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyBudget - Gestione Spese Cloud</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FamilyBudget - Gestione Spese Familiare</title>
+
     
-    <!-- PDF.js e Tesseract.js (Fallback) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        try {
-            if (typeof pdfjsLib !== 'undefined') {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
-        } catch(e) {}
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- FIREBASE SDKs (v10 Modular via CDN) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-        import { 
-            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-        import { 
-            getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
-        } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    <!-- Google Fonts & FontAwesome -->
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyA9c70nooXFxR-_OXd7ALySvz4riJInqyo",
-            authDomain: "familybudget-ec80c.firebaseapp.com",
-            projectId: "familybudget-ec80c",
-            storageBucket: "familybudget-ec80c.firebasestorage.app",
-            messagingSenderId: "285198206155",
-            appId: "1:285198206155:web:9f343005bc6ccae830074e",
-            measurementId: "G-Z921C02Q66"
-        };
+    <link rel="preconnect" href="https://fonts.googleapis.com">
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-        window.fbAuth = auth;
-        window.fbDb = db;
-        window.fbMethods = { 
-            signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, 
-            collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
-        };
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-        onAuthStateChanged(auth, (user) => {
-            const authSection = document.getElementById('auth-section');
-            const appContent = document.getElementById('app-content');
-            const userLabel = document.getElementById('user-email-label');
-
-            if (user) {
-                authSection.style.display = 'none';
-                appContent.style.display = 'block';
-                if(userLabel) userLabel.innerText = user.email;
-                inizializzaSincronizzazioneCloud();
-            } else {
-                authSection.style.display = 'flex';
-                appContent.style.display = 'none';
-            }
-        });
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
         :root {
-            --primary-color: #4f46e5;
-            --primary-hover: #4338ca;
+
+            --primary: #3b82f6;
+
+            --primary-hover: #2563eb;
+
             --bg-color: #f8fafc;
+
             --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --accent-gold: #d97706;
-            --text-color: #0f172a;
+
+            --text-main: #1e293b;
+
             --text-muted: #64748b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
+
+            --border-color: #e2e8f0;
+
+            --success: #10b981;
+
+            --danger: #ef4444;
+
+            --radius: 12px;
+
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
         }
 
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background-color: var(--bg-color); color: var(--text-color); -webkit-tap-highlight-color: transparent; }
+        * {
 
-        #auth-section {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #4f46e5 0%, #1e1b4b 100%);
-            padding: 16px;
+            box-sizing: border-box;
+
+            margin: 0;
+
+            padding: 0;
+
+            font-family: 'Inter', sans-serif;
+
         }
 
-        .auth-card {
-            background: white;
-            padding: 28px;
-            border-radius: 20px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-            text-align: center;
-        }
+        body {
 
-        .auth-card h2 { color: var(--primary-color); margin-bottom: 6px; font-size: 1.6rem; font-weight: 800; }
-        .auth-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+            background-color: var(--bg-color);
+
+            color: var(--text-main);
+
+            padding: 20px;
+
+            max-width: 1200px;
+
+            margin: 0 auto;
+
+        }
 
         header {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border-color);
-            padding: 12px 16px;
+
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 24px;
+
+            padding-bottom: 16px;
+
+            border-bottom: 1px solid var(--border-color);
+
+        }
+
+        header h1 {
+
+            font-size: 1.5rem;
+
+            color: var(--text-main);
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+        }
+
+        .dashboard-grid {
+
+            display: grid;
+
+            grid-template-columns: 1fr;
+
+            gap: 20px;
+
         }
 
         @media (min-width: 768px) {
-            header { flex-direction: row; justify-content: space-between; align-items: center; padding: 14px 32px; }
+
+            .dashboard-grid {
+
+                grid-template-columns: 1fr 2fr;
+
+            }
+
         }
 
-        .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .brand { font-size: 1.25rem; font-weight: 800; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
+        .card {
 
-        nav { 
-            display: flex; 
-            gap: 6px; 
-            overflow-x: auto; 
-            padding-bottom: 2px;
-            width: 100%;
-            -webkit-overflow-scrolling: touch;
-        }
+            background: var(--card-bg);
 
-        .nav-link { 
-            text-decoration: none; 
-            color: var(--text-muted); 
-            font-weight: 600; 
-            padding: 8px 14px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.2s;
-            white-space: nowrap;
-            font-size: 0.85rem;
-            background: #f1f5f9;
-        }
-        .nav-link.active { color: white; background-color: var(--primary-color); box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
+            border-radius: var(--radius);
 
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
-        .page-section { display: none; }
-        .page-section.active { display: block; }
+            padding: 20px;
 
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; } }
+            box-shadow: var(--shadow);
 
-        .stat-card { 
-            background: white; 
-            padding: 16px; 
-            border-radius: 14px; 
-            border: 1px solid var(--border-color); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .stat-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .stat-card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .stat-card h4 { color: var(--text-muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-card .amount { font-size: 1.4rem; font-weight: 800; color: var(--text-color); margin-top: 4px; }
-
-        .dashboard-grid, .scanner-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 850px) { 
-            .dashboard-grid, .scanner-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } 
-        }
-
-        .card { background: white; padding: 18px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 16px; }
-        @media (min-width: 768px) { .card { padding: 24px; margin-bottom: 20px; } }
-
-        .doc-type-selector { display: flex; gap: 8px; margin-bottom: 16px; }
-        .btn-type { flex: 1; padding: 12px 8px; border: 1px solid var(--border-color); background: #f8fafc; border-radius: 10px; cursor: pointer; font-weight: 600; color: var(--text-muted); text-align: center; font-size: 0.85rem; }
-        .btn-type.active { border-color: var(--accent-gold); background: #fffdf5; color: var(--accent-gold); }
-
-        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px 12px; text-align: center; background: #fafafa; cursor: pointer; position: relative; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #preview-container { width: 100%; max-height: 300px; overflow-y: auto; display: none; }
-        #preview-container img, #preview-container canvas { max-width: 100%; border-radius: 10px; }
-
-        .btn-primary { width: 100%; background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 10px; min-height: 48px; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
-        .btn-secondary { width: 100%; background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 8px; min-height: 44px; }
-        .btn-gold { background: var(--accent-gold); box-shadow: 0 4px 12px rgba(217,119,6,0.25); }
-        .btn-sm { padding: 6px 12px; font-size: 0.8rem; width: auto; margin: 0; }
-
-        .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        @media (min-width: 480px) { .form-row-2 { grid-template-columns: 1fr 1fr; } }
-
-        .form-group { margin-bottom: 12px; text-align: left; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.9rem; background: #fff; min-height: 42px; }
-
-        .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); }
-        @media (min-width: 600px) { .filters-bar { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
-
-        .summary-box { display: flex; align-items: center; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
-        .summary-box .info { font-size: 0.85rem; color: #3730a3; font-weight: 600; }
-        .summary-box .total-amount { font-size: 1.2rem; font-weight: 800; color: var(--primary-color); }
-
-        .recent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #f1f5f9; }
-        .recent-item-info { display: flex; align-items: center; gap: 10px; }
-        .recent-item-icon { width: 34px; height: 34px; border-radius: 8px; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-
-        .item-card-row {
-            background: #ffffff;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 8px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+
+            margin-bottom: 20px;
+
+        }
+
+        .card h2 {
+
+            font-size: 1.1rem;
+
+            margin-bottom: 16px;
+
+            color: var(--text-main);
+
+            display: flex;
+
             align-items: center;
+
+            gap: 8px;
+
         }
 
-        .item-card-row .full-width { grid-column: span 2; }
-        .item-card-row input, .item-card-row select { font-size: 0.85rem; padding: 8px; min-height: 38px; }
+        .form-group {
 
-        .table-responsive { width: 100%; overflow-x: auto; }
-        
-        @media (max-width: 600px) {
-            .main-table, .main-table thead, .main-table tbody, .main-table th, .main-table td, .main-table tr { display: block; }
-            .main-table thead { display: none; }
-            .main-table tr { 
-                background: #fff; 
-                border: 1px solid var(--border-color); 
-                border-radius: 12px; 
-                padding: 12px; 
-                margin-bottom: 10px; 
-                box-shadow: 0 1px 3px rgba(0,0,0,0.02); 
-            }
-            .main-table td { 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                padding: 6px 0; 
-                border-bottom: 1px dashed #f1f5f9; 
-                font-size: 0.85rem; 
-            }
-            .main-table td:last-child { border-bottom: none; padding-top: 10px; }
-            .main-table td::before { 
-                content: attr(data-label); 
-                font-weight: 600; 
-                color: var(--text-muted); 
-                font-size: 0.8rem; 
-            }
-            tfoot { display: none; }
+            margin-bottom: 14px;
+
         }
 
-        @media (min-width: 601px) {
-            .main-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            .main-table th, .main-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-            .main-table th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; user-select: none; transition: background 0.2s; }
-            .main-table th:hover { background: #edf2f7; color: var(--primary-color); }
-            tfoot td { background: #f8fafc; font-weight: bold; font-size: 0.95rem; border-top: 2px solid var(--border-color); }
+        .form-group label {
+
+            display: block;
+
+            font-size: 0.85rem;
+
+            font-weight: 500;
+
+            margin-bottom: 6px;
+
+            color: var(--text-muted);
+
         }
 
-        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-paid { background: #dcfce7; color: #166534; }
+        .form-control {
 
-        .btn-actions-container { display: flex; gap: 8px; width: 100%; justify-content: flex-end; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+            width: 100%;
 
-        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
-        .modal-backdrop.active { display: flex; }
-        .modal-content { background: white; padding: 22px; border-radius: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+            padding: 10px 12px;
 
-        .items-table-container { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; background: #f8fafc; }
-        .user-pill { background: #f1f5f9; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+            border: 1px solid var(--border-color);
+
+            border-radius: 8px;
+
+            font-size: 0.95rem;
+
+            outline: none;
+
+            transition: border-color 0.2s;
+
+        }
+
+        .form-control:focus {
+
+            border-color: var(--primary);
+
+        }
+
+        .btn {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 8px;
+
+            width: 100%;
+
+            padding: 10px 16px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background-color: var(--primary);
+
+            color: white;
+
+            font-size: 0.95rem;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition: background-color 0.2s;
+
+        }
+
+        .btn:hover {
+
+            background-color: var(--primary-hover);
+
+        }
+
+        .btn-secondary {
+
+            background-color: #64748b;
+
+        }
+
+        .btn-secondary:hover {
+
+            background-color: #475569;
+
+        }
+
+        .scanner-box {
+
+            border: 2px dashed var(--border-color);
+
+            padding: 20px;
+
+            text-align: center;
+
+            border-radius: var(--radius);
+
+            margin-bottom: 16px;
+
+            background-color: #fafafa;
+
+            cursor: pointer;
+
+            transition: border-color 0.2s;
+
+        }
+
+        .scanner-box:hover {
+
+            border-color: var(--primary);
+
+        }
+
+        .scanner-box i {
+
+            font-size: 2rem;
+
+            color: var(--text-muted);
+
+            margin-bottom: 8px;
+
+        }
+
+        #preview-img {
+
+            max-width: 100%;
+
+            max-height: 200px;
+
+            border-radius: 8px;
+
+            margin-top: 10px;
+
+            display: none;
+
+        }
+
+        .loader {
+
+            display: none;
+
+            border: 3px solid #f3f3f3;
+
+            border-top: 3px solid var(--primary);
+
+            border-radius: 50%;
+
+            width: 24px;
+
+            height: 24px;
+
+            animation: spin 1s linear infinite;
+
+            margin: 10px auto;
+
+        }
+
+        @keyframes spin {
+
+            0% { transform: rotate(0deg); }
+
+            100% { transform: rotate(360deg); }
+
+        }
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            text-align: left;
+
+            font-size: 0.9rem;
+
+        }
+
+        th, td {
+
+            padding: 12px;
+
+            border-bottom: 1px solid var(--border-color);
+
+        }
+
+        th {
+
+            background-color: #f1f5f9;
+
+            color: var(--text-muted);
+
+            font-weight: 600;
+
+        }
+
+        .badge {
+
+            padding: 4px 8px;
+
+            border-radius: 6px;
+
+            font-size: 0.75rem;
+
+            font-weight: 600;
+
+        }
+
+        .badge-spesa { background: #fee2e2; color: #991b1b; }
+
+        .badge-entrata { background: #d1fae5; color: #065f46; }
+
+        .summary-cards {
+
+            display: grid;
+
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+
+            gap: 12px;
+
+            margin-bottom: 20px;
+
+        }
+
+        .summary-card {
+
+            background: white;
+
+            padding: 16px;
+
+            border-radius: var(--radius);
+
+            border: 1px solid var(--border-color);
+
+            box-shadow: var(--shadow);
+
+        }
+
+        .summary-card span {
+
+            font-size: 0.8rem;
+
+            color: var(--text-muted);
+
+        }
+
+        .summary-card h3 {
+
+            font-size: 1.4rem;
+
+            margin-top: 4px;
+
+        }
+
+        .delete-btn {
+
+            color: var(--danger);
+
+            cursor: pointer;
+
+            border: none;
+
+            background: none;
+
+        }
+
     </style>
+
 </head>
+
 <body>
 
-    <!-- LOGIN CLOUD -->
-    <div id="auth-section">
-        <div class="auth-card">
-            <h2>🏠 FamilyBudget</h2>
-            <p>Accedi per sincronizzare spese e bollette in tempo reale.</p>
+    <header>
+
+        <h1><i class="fa-solid fa-wallet"></i> FamilyBudget</h1>
+
+        <div id="user-info" style="font-size: 0.9rem; color: var(--text-muted);">
+
+            Gestione Finanziaria Familiare
+
+        </div>
+
+    </header>
+
+    <div class="summary-cards">
+
+        <div class="summary-card">
+
+            <span>Totale Entrate</span>
+
+            <h3 id="total-incomes" style="color: var(--success);">€ 0,00</h3>
+
+        </div>
+
+        <div class="summary-card">
+
+            <span>Totale Uscite</span>
+
+            <h3 id="total-expenses" style="color: var(--danger);">€ 0,00</h3>
+
+        </div>
+
+        <div class="summary-card">
+
+            <span>Saldo Attuale</span>
+
+            <h3 id="total-balance">€ 0,00</h3>
+
+        </div>
+
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- Colonna Sinistra: Input e Scanner -->
+
+        <div class="left-column">
+
+            <!-- Card Scanner AI -->
+
+            <div class="card">
+
+                <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Scan Scontrino AI</h2>
+
+                <div class="scanner-box" onclick="document.getElementById('receipt-input').click()">
+
+                    <i class="fa-solid fa-camera"></i>
+
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Carica o scatta una foto allo scontrino</p>
+
+                    <input type="file" id="receipt-input" accept="image/*" style="display: none" onchange="previewAndAnalyze(event)">
+
+                    <img id="preview-img" alt="Anteprima scontrino">
+
+                </div>
+
+                <div class="loader" id="ai-loader"></div>
+
+                <p id="ai-status" style="font-size: 0.8rem; text-align: center; color: var(--text-muted);"></p>
+
+            </div>
+
+            <!-- Card Form Manuale -->
+
+            <div class="card">
+
+                <h2><i class="fa-solid fa-plus-circle"></i> Aggiungi Transazione</h2>
+
+                <form id="transaction-form">
+
+                    <div class="form-group">
+
+                        <label for="desc">Descrizione</label>
+
+                        <input type="text" id="desc" class="form-control" placeholder="Es. Spesa Conad" required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="amount">Importo (€)</label>
+
+                        <input type="number" step="0.01" id="amount" class="form-control" placeholder="0.00" required>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="type">Tipo</label>
+
+                        <select id="type" class="form-control">
+
+                            <option value="uscita">Uscita</option>
+
+                            <option value="entrata">Entrata</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="category">Categoria</label>
+
+                        <select id="category" class="form-control">
+
+                            <option value="Alimentari">Alimentari</option>
+
+                            <option value="Casa">Casa</option>
+
+                            <option value="Trasporti">Trasporti</option>
+
+                            <option value="Svago">Svago</option>
+
+                            <option value="Salute">Salute</option>
+
+                            <option value="Stipendio">Stipendio</option>
+
+                            <option value="Altro">Altro</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="date">Data</label>
+
+                        <input type="date" id="date" class="form-control" required>
+
+                    </div>
+
+                    <button type="submit" class="btn"><i class="fa-solid fa-save"></i> Salva Transazione</button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <!-- Colonna Destra: Lista Transazioni -->
+
+        <div class="right-column">
+
+            <div class="card">
+
+                <h2><i class="fa-solid fa-list"></i> Storico Transazioni</h2>
+
+                <div style="overflow-x: auto;">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Data</th>
+
+                                <th>Descrizione</th>
+
+                                <th>Categoria</th>
+
+                                <th>Importo</th>
+
+                                <th>Azioni</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="transaction-list">
+
+                            <!-- Le righe verranno inserite dinamicamente via JS -->
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK Modular -->
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIGURAZIONE FIREBASE (Sostituire con i propri dati)
+
+        const firebaseConfig = {
+
+            apiKey: "YOUR_FIREBASE_API_KEY",
+
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+
+            projectId: "YOUR_PROJECT_ID",
+
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+
+            messagingSenderId: "YOUR_SENDER_ID",
+
+            appId: "YOUR_APP_ID"
+
+        };
+
+        // Inizializzazione Firebase
+
+        const app = initializeApp(firebaseConfig);
+
+        const db = getFirestore(app);
+
+        const transactionsRef = collection(db, "transactions");
+
+        // CONFIGURAZIONE GEMINI API KEY
+
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
+
+        // Imposta data odierna nel form
+
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Salva Transazione nel DB
+
+        document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+
             
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="login-email" class="form-control" placeholder="nome@email.com">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-password" class="form-control" placeholder="••••••••">
-            </div>
 
-            <button class="btn-primary" onclick="handleLogin()">Accedi</button>
-            <button class="btn-secondary" onclick="handleRegister()">Crea Account</button>
-            <div id="auth-error" style="color:red; font-size:0.8rem; margin-top:10px;"></div>
-        </div>
-    </div>
+            const desc = document.getElementById('desc').value;
 
-    <!-- APP PRINCIPALE -->
-    <div id="app-content" style="display:none;">
-        <header>
-            <div class="header-top">
-                <div class="brand">🏠 FamilyBudget</div>
-                <div class="user-pill">
-                    👤 <span id="user-email-label">utente</span>
-                    <button onclick="handleLogout()" style="border:none; background:none; cursor:pointer; color:#ef4444; font-weight:bold; margin-left:6px;">Esci</button>
-                </div>
-            </div>
-            <nav>
-                <a class="nav-link active" onclick="switchTab('dashboard')">Dashboard</a>
-                <a class="nav-link" onclick="switchTab('scanner')">Scanner AI</a>
-                <a class="nav-link" onclick="switchTab('articoli')">Analisi Articoli</a>
-                <a class="nav-link" onclick="switchTab('scadenzario')">Scadenzario</a>
-                <a class="nav-link" onclick="switchTab('statistiche')">Statistiche Utenze</a>
-            </nav>
-        </header>
+            const amount = parseFloat(document.getElementById('amount').value);
 
-        <div class="container">
+            const type = document.getElementById('type').value;
 
-            <!-- DASHBOARD -->
-            <section id="sec-dashboard" class="page-section active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h4>Mese Corrente</h4>
-                            <div class="stat-card-icon" style="background:#e0e7ff; color:#4f46e5;">📅</div>
-                        </div>
-                        <div class="amount" id="dash-month-total">€ 0,00</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h4>Da Pagare</h4>
-                            <div class="stat-card-icon" style="background:#fef3c7; color:#d97706;">⏳</div>
-                        </div>
-                        <div class="amount" style="color: #d97706;" id="dash-pending-total">€ 0,00</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h4>Articoli</h4>
-                            <div class="stat-card-icon" style="background:#dcfce7; color:#10b981;">🛒</div>
-                        </div>
-                        <div class="amount" style="color: #10b981;" id="dash-items-count">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h4>Documenti</h4>
-                            <div class="stat-card-icon" style="background:#f1f5f9; color:#64748b;">📂</div>
-                        </div>
-                        <div class="amount" id="dash-docs-count">0</div>
-                    </div>
-                </div>
+            const category = document.getElementById('category').value;
 
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:14px; color:var(--text-color);">Andamento Spese Mensili</h3>
-                        <canvas id="chartDashboard" height="170"></canvas>
-                    </div>
-                    <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:14px; color:var(--text-color);">Ultime Spese Registrate</h3>
-                        <div id="dash-recent-list" class="recent-list"></div>
-                    </div>
-                </div>
-            </section>
+            const date = document.getElementById('date').value;
 
-            <!-- SCANNER AI GEMINI VISION -->
-            <section id="sec-scanner" class="page-section">
-                <div class="scanner-grid">
-                    <div class="card">
-                        <h3 style="font-size:1.05rem;">✨ Scanner Vision AI</h3>
-                        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">Analisi intelligente di scontrini e bollette con Gemini Vision API.</p>
+            try {
 
-                        <div class="form-group" style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--border-color);">
-                            <label style="color:var(--primary-color);">🔑 Chiave API Gemini (Google AI Studio)</label>
-                            <input type="password" id="gemini-api-key" class="form-control" placeholder="Incolla qui la tua API Key Gemini" onchange="salvaGeminiApiKey()">
-                        </div>
-                        
-                        <div class="doc-type-selector">
-                            <div class="btn-type active" id="type-scontrino" onclick="setDocType('scontrino')">🧾 Scontrino</div>
-                            <div class="btn-type" id="type-bolletta" onclick="setDocType('bolletta')">📄 Bolletta</div>
-                        </div>
+                await addDoc(transactionsRef, {
 
-                        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                            <div id="upload-prompt">
-                                📄 <b>Tocca per caricare</b><br>
-                                <span style="font-size:0.75rem; color:#94a3b8;">PDF o Foto</span>
-                            </div>
-                            <div id="preview-container"></div>
-                        </div>
-                        <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelect(event)">
+                    description: desc,
 
-                        <button class="btn-primary" id="btn-analyze" onclick="analizzaConGeminiVision()">✨ Analizza con Gemini AI</button>
-                        <button class="btn-secondary" onclick="resetAndUploadNew()">📂 Carica Nuovo</button>
-                        <div id="loading-indicator" style="display:none; color:var(--primary-color); font-weight:bold; font-size:0.85rem; margin-top:8px; text-align:center;">⏳ Analisi Vision AI in corso...</div>
-                    </div>
+                    amount: amount,
 
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <h3 style="font-size:1.05rem;">Verifica Dati Estratti</h3>
-                            <span id="ai-status-badge" style="display:none;" class="status-badge status-paid">Vision AI OK</span>
-                        </div>
+                    type: type,
 
-                        <div class="form-group">
-                            <label>Fornitore / Negozio</label>
-                            <input type="text" id="field-ente" class="form-control" placeholder="es. Eurospin, Action">
-                        </div>
+                    category: category,
 
-                        <div class="form-group">
-                            <label>Categoria Generale</label>
-                            <select id="field-categoria" class="form-control">
-                                <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
-                                <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
-                                <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
-                                <option value="Acqua">💧 Acqua</option>
-                                <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                                <option value="Altro">📦 Altro</option>
-                            </select>
-                        </div>
+                    date: date,
 
-                        <div class="form-group">
-                            <label>Importo Totale (€)</label>
-                            <input type="number" step="0.01" id="field-importo" class="form-control" placeholder="0,00">
-                        </div>
+                    createdAt: new Date()
 
-                        <div class="form-row-2">
-                            <div class="form-group">
-                                <label>Data Emissione</label>
-                                <input type="date" id="field-data-emissione" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label id="label-data">Data Scadenza</label>
-                                <input type="date" id="field-data-scadenza" class="form-control">
-                            </div>
-                        </div>
+                });
 
-                        <!-- DIVISORE E GESTIONE VOCI SCONTRINO -->
-                        <div id="container-dettaglio-articoli" class="items-table-container">
-                            <h4 style="font-size:0.85rem; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>📦 Voci e Divisione Spesa</span>
-                                <button type="button" class="btn-secondary btn-sm" onclick="aggiungiRigaArticolo()">+ Aggiungi Voce</button>
-                            </h4>
-                            
-                            <div id="articoli-list-container"></div>
-                        </div>
+                document.getElementById('transaction-form').reset();
 
-                        <div class="form-group" style="margin-top:12px;">
-                            <label>Stato Pagamento</label>
-                            <select id="field-stato" class="form-control">
-                                <option value="Pagato">✅ Pagato</option>
-                                <option value="Da Pagare">⏳ Da Pagare</option>
-                            </select>
-                        </div>
+                document.getElementById('date').valueAsDate = new Date();
 
-                        <button class="btn-primary btn-gold" onclick="salvaDocumentoCloud()">☁️ Salva nel Cloud</button>
-                    </div>
-                </div>
-            </section>
+            } catch (error) {
 
-            <!-- ANALISI ARTICOLI -->
-            <section id="sec-articoli" class="page-section">
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:12px;">🏆 Prodotti Più Acquistati</h3>
-                        <div class="table-responsive">
-                            <table class="main-table">
-                                <thead>
-                                    <tr>
-                                        <th>Prodotto</th>
-                                        <th>Macro-Area</th>
-                                        <th>Assegnato a</th>
-                                        <th>Conteggio</th>
-                                        <th>Spesa</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-frequenza-articoli"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                console.error("Errore durante il salvataggio: ", error);
 
-                    <div class="card">
-                        <h3 style="font-size:1.05rem; margin-bottom:12px;">🍎 Spesa per Macro-Area</h3>
-                        <canvas id="chartMacroAree" height="180"></canvas>
-                    </div>
-                </div>
-            </section>
+                alert("Errore nel salvataggio della transazione.");
 
-            <!-- SCADENZIARIO -->
-            <section id="sec-scadenzario" class="page-section">
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <h3 style="font-size:1.05rem;">📅 Scadenzario Spese</h3>
-                        <button class="btn-secondary btn-sm" onclick="importaDatiLocaliNelCloud()" style="width:auto;">📥 Sincronizza Locali</button>
-                    </div>
-                    
-                    <div class="filters-bar" style="margin-top: 12px;">
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label style="font-size:0.75rem; color:#64748b;">🔍 Cerca Fornitore</label>
-                            <input type="text" id="filter-search" class="form-control" placeholder="Es. Action..." oninput="renderScadenzario()">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label style="font-size:0.75rem; color:#64748b;">📂 Categoria</label>
-                            <select id="filter-categoria" class="form-control" onchange="renderScadenzario()">
-                                <option value="ALL">Tutte le Categorie</option>
-                                <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
-                                <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
-                                <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
-                                <option value="Acqua">💧 Acqua</option>
-                                <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                                <option value="Altro">📦 Altro</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label style="font-size:0.75rem; color:#64748b;">📌 Stato</label>
-                            <select id="filter-stato" class="form-control" onchange="renderScadenzario()">
-                                <option value="ALL">Tutti gli Stati</option>
-                                <option value="Da Pagare">⏳ Da Pagare</option>
-                                <option value="Pagato">✅ Pagato</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label style="font-size:0.75rem; color:#64748b;">🗓️ Mese Scadenza</label>
-                            <input type="month" id="filter-mese-scadenza" class="form-control" onchange="renderScadenzario()">
-                        </div>
-                    </div>
-
-                    <div class="summary-box">
-                        <div class="info">💰 Totale (<span id="filtered-count">0</span> voci)</div>
-                        <div class="total-amount" id="filtered-total-amount">€ 0,00</div>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="main-table">
-                            <thead>
-                                <tr>
-                                    <th onclick="sortTable('tipo')">Tipo <span id="sort-icon-tipo">↕</span></th>
-                                    <th onclick="sortTable('ente')">Fornitore <span id="sort-icon-ente">↕</span></th>
-                                    <th onclick="sortTable('categoria')">Categoria <span id="sort-icon-categoria">↕</span></th>
-                                    <th onclick="sortTable('importo')">Importo <span id="sort-icon-importo">↕</span></th>
-                                    <th onclick="sortTable('dataEmissione')">Emissione <span id="sort-icon-dataEmissione">↕</span></th>
-                                    <th onclick="sortTable('dataScadenza')">Scadenza <span id="sort-icon-dataScadenza">↕</span></th>
-                                    <th onclick="sortTable('stato')">Stato <span id="sort-icon-stato">↕</span></th>
-                                    <th>Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-scadenzario-tbody"></tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" style="text-align: right;"><b>Totale Importo:</b></td>
-                                    <td id="tfoot-total-amount"><b>€ 0,00</b></td>
-                                    <td colspan="4"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- STATISTICHE UTENZE -->
-            <section id="sec-statistiche" class="page-section">
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                        <h3 style="font-size:1.05rem;">📊 Ripartizione & Analisi Utenze</h3>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <label style="font-size:0.8rem; font-weight:600; color:#475569;">Filtra Mese:</label>
-                            <input type="month" id="filter-stat-month" class="form-control" style="padding:6px 10px; min-height:auto; width:auto;" onchange="renderStatistiche()">
-                        </div>
-                    </div>
-
-                    <div class="dashboard-grid" style="margin-top:16px;">
-                        <div class="card" style="margin-bottom:0;">
-                            <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Ripartizione Spese per Categoria</h4>
-                            <canvas id="chartStatistiche" height="200"></canvas>
-                        </div>
-                        <div class="card" style="margin-bottom:0;">
-                            <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Storico Mensile Utenze</h4>
-                            <canvas id="chartUtenzeStorico" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    <!-- MODALE MODIFICA CLOUD -->
-    <div id="modal-edit" class="modal-backdrop">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="font-size:1.1rem;">✏️ Modifica Documento</h3>
-                <button onclick="chiudiModalModifica()" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-            </div>
-            <input type="hidden" id="edit-idDoc">
-
-            <div class="form-group">
-                <label>Fornitore</label>
-                <input type="text" id="edit-ente" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label>Categoria</label>
-                <select id="edit-categoria" class="form-control">
-                    <option value="Spesa Alimentare">🛒 Spesa Alimentare</option>
-                    <option value="Luce / Elettricità">⚡ Luce / Elettricità</option>
-                    <option value="Gas / Gas Naturale">🔥 Gas / Gas Naturale</option>
-                    <option value="Acqua">💧 Acqua</option>
-                    <option value="Internet / Telefono">🌐 Internet / Telefono</option>
-                    <option value="Altro">📦 Altro</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Importo (€)</label>
-                <input type="number" step="0.01" id="edit-importo" class="form-control">
-            </div>
-
-            <div class="form-row-2">
-                <div class="form-group">
-                    <label>Data Emissione</label>
-                    <input type="date" id="edit-data-emissione" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>Data Scadenza</label>
-                    <input type="date" id="edit-data-scadenza" class="form-control">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Stato Pagamento</label>
-                <select id="edit-stato" class="form-control">
-                    <option value="Pagato">✅ Pagato</option>
-                    <option value="Da Pagare">⏳ Da Pagare</option>
-                </select>
-            </div>
-
-            <div style="display:flex; gap:8px; margin-top:16px;">
-                <button class="btn-secondary" onclick="chiudiModalModifica()">Annulla</button>
-                <button class="btn-primary" style="margin-top:0;" onclick="salvaModificaCloud()">Salva</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let dbSpese = [];
-        let dbArticoli = [];
-        let currentDocType = 'scontrino';
-        let currentFileData = null;
-        let pdfExtractedText = "";
-        let chartDashInstance = null;
-        let chartStatInstance = null;
-        let chartUtenzeStoricoInstance = null;
-        let chartMacroInstance = null;
-        let sortColumn = 'dataScadenza';
-        let sortAscending = false;
-
-        const MACRO_AREE = ['Alimentari', 'Frutta e verdura', 'Cura della casa', 'Cura della persona', 'Elettronica / Tech', 'Cancelleria', 'Altro'];
-        const MEMBRI_FAMIGLIA = ['Famiglia (Comune)', 'Luca', 'Moglie', 'Lavoro / Altro'];
-        const NOMI_MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giug', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-
-        // Caricamento Chiave API salvata
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if(savedKey) {
-                document.getElementById('gemini-api-key').value = savedKey;
             }
+
         });
 
-        function salvaGeminiApiKey() {
-            const key = document.getElementById('gemini-api-key').value.trim();
-            localStorage.setItem('gemini_api_key', key);
-        }
+        // Ascolto Cambiamenti Firestore in Tempo Reale
 
-        async function handleLogin() {
-            const e = document.getElementById('login-email').value;
-            const p = document.getElementById('login-password').value;
-            try {
-                await window.fbMethods.signInWithEmailAndPassword(window.fbAuth, e, p);
-            } catch(err) {
-                document.getElementById('auth-error').innerText = "Errore Accesso: " + err.message;
-            }
-        }
+        const q = query(transactionsRef, orderBy("date", "desc"));
 
-        async function handleRegister() {
-            const e = document.getElementById('login-email').value;
-            const p = document.getElementById('login-password').value;
-            try {
-                await window.fbMethods.createUserWithEmailAndPassword(window.fbAuth, e, p);
-            } catch(err) {
-                document.getElementById('auth-error').innerText = "Errore Registrazione: " + err.message;
-            }
-        }
+        onSnapshot(q, (snapshot) => {
 
-        function handleLogout() {
-            window.fbMethods.signOut(window.fbAuth);
-        }
+            const listEl = document.getElementById('transaction-list');
 
-        function inizializzaSincronizzazioneCloud() {
-            const { collection, onSnapshot } = window.fbMethods;
-            
-            onSnapshot(collection(window.fbDb, "spese"), (snapshot) => {
-                dbSpese = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
-                updateDashboard();
-                renderScadenzario();
-                renderStatistiche();
-            });
+            listEl.innerHTML = '';
 
-            onSnapshot(collection(window.fbDb, "articoli"), (snapshot) => {
-                dbArticoli = snapshot.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
-                renderAnalisiArticoli();
-                updateDashboard();
-            });
-        }
+            let totalIncomes = 0;
 
-        async function importaDatiLocaliNelCloud() {
-            try {
-                const vecchieSpese = JSON.parse(localStorage.getItem('family_budget_spese')) || [];
-                if (vecchieSpese.length === 0) {
-                    alert('Nessun dato locale da importare.');
-                    return;
-                }
+            let totalExpenses = 0;
 
-                const { collection, addDoc } = window.fbMethods;
-                for (let spesa of vecchieSpese) {
-                    await addDoc(collection(window.fbDb, "spese"), {
-                        tipo: spesa.tipo || 'bolletta',
-                        ente: spesa.ente || '',
-                        categoria: spesa.categoria || 'Altro',
-                        importo: parseFloat(spesa.importo) || 0,
-                        dataEmissione: spesa.dataEmissione || '',
-                        dataScadenza: spesa.dataScadenza || '',
-                        stato: spesa.stato || 'Pagato',
-                        createdAt: new Date().toISOString()
-                    });
-                }
-                alert(`${vecchieSpese.length} elementi locali trasferiti nel Cloud!`);
-            } catch(e) {
-                alert('Errore durante il trasferimento dati.');
-            }
-        }
+            snapshot.forEach((docSnap) => {
 
-        async function salvaDocumentoCloud() {
-            const ente = document.getElementById('field-ente').value.trim();
-            const importo = parseFloat(document.getElementById('field-importo').value);
-            const dataScadenza = document.getElementById('field-data-scadenza').value;
+                const item = docSnap.data();
 
-            if(!ente || isNaN(importo)) {
-                alert('Inserisci almeno fornitore e importo.');
-                return;
-            }
+                const id = docSnap.id;
 
-            const { collection, addDoc } = window.fbMethods;
-            const docRef = await addDoc(collection(window.fbDb, "spese"), {
-                tipo: currentDocType,
-                ente: ente,
-                categoria: document.getElementById('field-categoria').value,
-                importo: importo,
-                dataEmissione: document.getElementById('field-data-emissione').value,
-                dataScadenza: dataScadenza,
-                stato: document.getElementById('field-stato').value,
-                createdAt: new Date().toISOString()
-            });
+                if (item.type === 'entrata') {
 
-            if (currentDocType === 'scontrino') {
-                const rows = document.querySelectorAll('#articoli-list-container .item-card-row');
-                for(let r of rows) {
-                    const nome = r.querySelector('.item-name')?.value.trim();
-                    const macro = r.querySelector('.item-macro')?.value;
-                    const assegno = r.querySelector('.item-assign')?.value;
-                    const prezzo = parseFloat(r.querySelector('.item-price')?.value);
-
-                    if (nome && !isNaN(prezzo)) {
-                        await addDoc(collection(window.fbDb, "articoli"), {
-                            spesaId: docRef.id,
-                            data: dataScadenza || new Date().toISOString().split('T')[0],
-                            nome: nome,
-                            macroArea: macro,
-                            assegnatoA: assegno || 'Famiglia (Comune)',
-                            prezzo: prezzo
-                        });
-                    }
-                }
-            }
-
-            alert('Salvato nel Cloud con successo!');
-            switchTab('scadenzario');
-        }
-
-        function apriModalModifica(idDoc) {
-            const item = dbSpese.find(d => d.idDoc === idDoc);
-            if(!item) return;
-
-            document.getElementById('edit-idDoc').value = item.idDoc;
-            document.getElementById('edit-ente').value = item.ente;
-            document.getElementById('edit-categoria').value = item.categoria;
-            document.getElementById('edit-importo').value = item.importo;
-            document.getElementById('edit-data-emissione').value = item.dataEmissione || '';
-            document.getElementById('edit-data-scadenza').value = item.dataScadenza || '';
-            document.getElementById('edit-stato').value = item.stato;
-
-            document.getElementById('modal-edit').classList.add('active');
-        }
-
-        function chiudiModalModifica() {
-            document.getElementById('modal-edit').classList.remove('active');
-        }
-
-        async function salvaModificaCloud() {
-            const idDoc = document.getElementById('edit-idDoc').value;
-            const { doc, updateDoc } = window.fbMethods;
-
-            await updateDoc(doc(window.fbDb, "spese", idDoc), {
-                ente: document.getElementById('edit-ente').value.trim(),
-                categoria: document.getElementById('edit-categoria').value,
-                importo: parseFloat(document.getElementById('edit-importo').value) || 0,
-                dataEmissione: document.getElementById('edit-data-emissione').value,
-                dataScadenza: document.getElementById('edit-data-scadenza').value,
-                stato: document.getElementById('edit-stato').value
-            });
-
-            chiudiModalModifica();
-            alert('Modifica salvata!');
-        }
-
-        async function eliminaDocumento(idDoc) {
-            if(confirm('Eliminare questo documento?')) {
-                const { doc, deleteDoc } = window.fbMethods;
-                await deleteDoc(doc(window.fbDb, "spese", idDoc));
-            }
-        }
-
-        function formatDateToIT(dateString) {
-            if (!dateString) return '-';
-            const parts = dateString.split('-');
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            return dateString;
-        }
-
-        function convertToInputDate(day, month, year) {
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-
-            const idx = ['dashboard', 'scanner', 'articoli', 'scadenzario', 'statistiche'].indexOf(tabName);
-            if(idx !== -1) {
-                document.querySelectorAll('.nav-link')[idx].classList.add('active');
-                document.getElementById(`sec-${tabName}`).classList.add('active');
-                if(tabName === 'dashboard') updateDashboard();
-                if(tabName === 'articoli') renderAnalisiArticoli();
-                if(tabName === 'scadenzario') renderScadenzario();
-                if(tabName === 'statistiche') renderStatistiche();
-            }
-        }
-
-        function setDocType(type) {
-            currentDocType = type;
-            document.getElementById('type-scontrino').classList.toggle('active', type === 'scontrino');
-            document.getElementById('type-bolletta').classList.toggle('active', type === 'bolletta');
-            
-            const contArticoli = document.getElementById('container-dettaglio-articoli');
-            if(type === 'scontrino') {
-                document.getElementById('label-data').innerText = 'Data Spesa';
-                document.getElementById('field-categoria').value = 'Spesa Alimentare';
-                document.getElementById('field-stato').value = 'Pagato';
-                contArticoli.style.display = 'block';
-            } else {
-                document.getElementById('label-data').innerText = 'Data Scadenza Pagamento';
-                document.getElementById('field-categoria').value = 'Luce / Elettricità';
-                document.getElementById('field-stato').value = 'Da Pagare';
-                contArticoli.style.display = 'none';
-            }
-        }
-
-        function aggiungiRigaArticolo(nome = '', macroArea = 'Alimentari', prezzo = '', assegnatoA = 'Famiglia (Comune)') {
-            const container = document.getElementById('articoli-list-container');
-            if (!container) return;
-
-            const div = document.createElement('div');
-            div.className = 'item-card-row';
-
-            let optionsMacro = MACRO_AREE.map(m => `<option value="${m}" ${m === macroArea ? 'selected' : ''}>${m}</option>`).join('');
-            let optionsAssign = MEMBRI_FAMIGLIA.map(m => `<option value="${m}" ${m === assegnatoA ? 'selected' : ''}>${m}</option>`).join('');
-
-            div.innerHTML = `
-                <div class="full-width">
-                    <input type="text" class="item-name form-control" placeholder="Descrizione Articolo" value="${nome}">
-                </div>
-                <div>
-                    <select class="item-macro form-control">${optionsMacro}</select>
-                </div>
-                <div>
-                    <select class="item-assign form-control" title="Dividi Spesa / Assegnato A">${optionsAssign}</select>
-                </div>
-                <div>
-                    <input type="number" step="0.01" class="item-price form-control" placeholder="€ 0.00" value="${prezzo}">
-                </div>
-                <div style="text-align:right;">
-                    <button type="button" onclick="this.closest('.item-card-row').remove()" style="background:none; border:none; color:red; font-size:1.2rem; cursor:pointer;">✖</button>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-
-        function resetAndUploadNew() {
-            currentFileData = null;
-            pdfExtractedText = "";
-            document.getElementById('file-input').value = '';
-            document.getElementById('preview-container').innerHTML = '';
-            document.getElementById('preview-container').style.display = 'none';
-            document.getElementById('upload-prompt').style.display = 'block';
-            document.getElementById('ai-status-badge').style.display = 'none';
-            document.getElementById('articoli-list-container').innerHTML = '';
-
-            document.getElementById('field-ente').value = '';
-            document.getElementById('field-importo').value = '';
-            document.getElementById('field-data-emissione').value = '';
-            document.getElementById('field-data-scadenza').value = '';
-
-            document.getElementById('file-input').click();
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if(file) processFile(file);
-        }
-
-        function processFile(file) {
-            const previewContainer = document.getElementById('preview-container');
-            const uploadPrompt = document.getElementById('upload-prompt');
-            previewContainer.innerHTML = '';
-            previewContainer.style.display = 'block';
-            uploadPrompt.style.display = 'none';
-            pdfExtractedText = "";
-
-            if (file.type === 'application/pdf') {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const typedarray = new Uint8Array(e.target.result);
-                    if (typeof pdfjsLib !== 'undefined') {
-                        pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                            pdf.getPage(1).then(page => {
-                                const viewport = page.getViewport({ scale: 1.5 });
-                                const canvas = document.createElement('canvas');
-                                const context = canvas.getContext('2d');
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-
-                                page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-                                    previewContainer.appendChild(canvas);
-                                    currentFileData = canvas.toDataURL('image/jpeg', 0.85);
-                                });
-                            });
-                        });
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            } else {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    previewContainer.appendChild(img);
-                    currentFileData = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        /* CHIAMATA DIRETTA A GEMINI 1.5 FLASH VISION API */
-        async function analizzaConGeminiVision() {
-            if(!currentFileData) {
-                alert('Seleziona prima un file!');
-                return;
-            }
-
-            const apiKey = document.getElementById('gemini-api-key').value.trim();
-            if(!apiKey) {
-                alert('Inserisci la tua API Key Gemini per procedere con la Vision AI!');
-                return;
-            }
-
-            const loader = document.getElementById('loading-indicator');
-            const btnAnalyze = document.getElementById('btn-analyze');
-            loader.style.display = 'block';
-            btnAnalyze.disabled = true;
-
-            try {
-                const base64Image = currentFileData.split(',')[1];
-                
-                const promptText = `
-                Analizza questa immagine di un documento fiscale (scontrino o bolletta).
-                Estrai i dati e rispondi ESCLUSIVAMENTE con un JSON valido con questo formato esatto:
-                {
-                  "ente": "Nome del negozio o fornitore (es. ACTION, Eurospin, Octopus)",
-                  "categoria": "Una tra: Spesa Alimentare, Luce / Elettricità, Gas / Gas Naturale, Acqua, Internet / Telefono, Altro",
-                  "importo": 0.00 (numero float con il totale complessivo),
-                  "dataEmissione": "YYYY-MM-DD",
-                  "dataScadenza": "YYYY-MM-DD",
-                  "articoli": [
-                    {
-                      "nome": "Nome pulito del prodotto senza codici a barre/EAN",
-                      "prezzo": 0.00,
-                      "macroArea": "Una tra: Alimentari, Frutta e verdura, Cura della casa, Cura della persona, Elettronica / Tech, Cancelleria, Altro"
-                    }
-                  ]
-                }
-                Se non trovi alcuni articoli o è una bolletta, lascia "articoli": [].
-                `;
-
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                            ]
-                        }]
-                    })
-                });
-
-                const result = await response.json();
-                loader.style.display = 'none';
-                btnAnalyze.disabled = false;
-
-                if (result.candidates && result.candidates[0].content.parts[0].text) {
-                    let rawText = result.candidates[0].content.parts[0].text;
-                    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-                    
-                    const data = JSON.parse(rawText);
-                    
-                    document.getElementById('ai-status-badge').style.display = 'inline-block';
-                    
-                    // Popolamento campi
-                    if(data.ente) document.getElementById('field-ente').value = data.ente;
-                    if(data.categoria) document.getElementById('field-categoria').value = data.categoria;
-                    if(data.importo) document.getElementById('field-importo').value = parseFloat(data.importo).toFixed(2);
-                    if(data.dataEmissione) document.getElementById('field-data-emissione').value = data.dataEmissione;
-                    if(data.dataScadenza) document.getElementById('field-data-scadenza').value = data.dataScadenza;
-
-                    // Popolamento Articoli
-                    const container = document.getElementById('articoli-list-container');
-                    container.innerHTML = '';
-                    if(data.articoli && data.articoli.length > 0) {
-                        data.articoli.forEach(art => {
-                            aggiungiRigaArticolo(art.nome, art.macroArea || 'Altro', parseFloat(art.prezzo).toFixed(2));
-                        });
-                    } else {
-                        aggiungiRigaArticolo();
-                    }
+                    totalIncomes += item.amount;
 
                 } else {
-                    alert('Nessun dato estratto dall\'immagine. Riprova con una foto più nitida.');
+
+                    totalExpenses += item.amount;
+
                 }
 
-            } catch(err) {
-                loader.style.display = 'none';
-                btnAnalyze.disabled = false;
-                alert('Errore Vision AI: Verifica la tua API Key o la connessione internet.');
-            }
-        }
-
-        function sortTable(column) {
-            if (sortColumn === column) sortAscending = !sortAscending;
-            else { sortColumn = column; sortAscending = true; }
-            renderScadenzario();
-        }
-
-        function updateSortIcons() {
-            ['tipo', 'ente', 'categoria', 'importo', 'dataEmissione', 'dataScadenza', 'stato'].forEach(col => {
-                const icon = document.getElementById(`sort-icon-${col}`);
-                if (icon) icon.innerText = (col === sortColumn) ? (sortAscending ? '▲' : '▼') : '↕';
-            });
-        }
-
-        function renderScadenzario() {
-            const tbody = document.getElementById('table-scadenzario-tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            const searchVal = document.getElementById('filter-search')?.value.toLowerCase().trim() || '';
-            const catVal = document.getElementById('filter-categoria')?.value || 'ALL';
-            const statoVal = document.getElementById('filter-stato')?.value || 'ALL';
-            const monthVal = document.getElementById('filter-mese-scadenza')?.value || '';
-
-            let filteredList = dbSpese.filter(item => {
-                const matchSearch = (item.ente || '').toLowerCase().includes(searchVal);
-                const matchCat = catVal === 'ALL' || item.categoria === catVal;
-                const matchStato = statoVal === 'ALL' || item.stato === statoVal;
-                let matchMonth = true;
-                if (monthVal && item.dataScadenza) matchMonth = item.dataScadenza.startsWith(monthVal);
-
-                return matchSearch && matchCat && matchStato && matchMonth;
-            });
-
-            filteredList.sort((a, b) => {
-                let valA = a[sortColumn] || '';
-                let valB = b[sortColumn] || '';
-
-                if (sortColumn === 'importo') {
-                    valA = parseFloat(valA) || 0;
-                    valB = parseFloat(valB) || 0;
-                } else {
-                    valA = valA.toString().toLowerCase();
-                    valB = valB.toString().toLowerCase();
-                }
-
-                if (valA < valB) return sortAscending ? -1 : 1;
-                if (valA > valB) return sortAscending ? 1 : -1;
-                return 0;
-            });
-
-            updateSortIcons();
-
-            const total = filteredList.reduce((s, i) => s + (parseFloat(i.importo) || 0), 0);
-            document.getElementById('filtered-count').innerText = filteredList.length;
-            document.getElementById('filtered-total-amount').innerText = `€ ${total.toFixed(2)}`;
-            const tfoot = document.getElementById('tfoot-total-amount');
-            if(tfoot) tfoot.innerHTML = `<b>€ ${total.toFixed(2)}</b>`;
-
-            filteredList.forEach(item => {
                 const tr = document.createElement('tr');
-                const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
+
                 tr.innerHTML = `
-                    <td data-label="Tipo">${item.tipo === 'scontrino' ? '🧾 Scontrino' : '📄 Bolletta'}</td>
-                    <td data-label="Fornitore"><b>${item.ente}</b></td>
-                    <td data-label="Categoria">${item.categoria}</td>
-                    <td data-label="Importo"><b>€ ${parseFloat(item.importo).toFixed(2)}</b></td>
-                    <td data-label="Emissione">${formatDateToIT(item.dataEmissione)}</td>
-                    <td data-label="Scadenza">${formatDateToIT(item.dataScadenza)}</td>
-                    <td data-label="Stato"><span class="status-badge ${badgeClass}">${item.stato}</span></td>
-                    <td data-label="Azioni">
-                        <div class="btn-actions-container">
-                            <button class="btn-edit" onclick="apriModalModifica('${item.idDoc}')">✏️ Modifica</button>
-                            <button class="btn-delete" onclick="eliminaDocumento('${item.idDoc}')">🗑️ Elimina</button>
-                        </div>
+
+                    <td>${item.date}</td>
+
+                    <td><strong>${item.description}</strong></td>
+
+                    <td><span class="badge ${item.type === 'entrata' ? 'badge-entrata' : 'badge-spesa'}">${item.category}</span></td>
+
+                    <td style="color: ${item.type === 'entrata' ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">
+
+                        ${item.type === 'entrata' ? '+' : '-'} € ${item.amount.toFixed(2)}
+
                     </td>
+
+                    <td>
+
+                        <button class="delete-btn" onclick="deleteTransaction('${id}')"><i class="fa-solid fa-trash"></i></button>
+
+                    </td>
+
                 `;
-                tbody.appendChild(tr);
-            });
-        }
 
-        function renderAnalisiArticoli() {
-            const tbody = document.getElementById('tbody-frequenza-articoli');
-            if (!tbody) return;
-            tbody.innerHTML = '';
+                listEl.appendChild(tr);
 
-            const stats = {};
-            dbArticoli.forEach(art => {
-                const key = art.nome.toLowerCase();
-                if (!stats[key]) stats[key] = { nome: art.nome, macroArea: art.macroArea, assegnatoA: art.assegnatoA || 'Famiglia', conteggio: 0, spesaTotale: 0 };
-                stats[key].conteggio += 1;
-                stats[key].spesaTotale += art.prezzo;
             });
 
-            Object.values(stats).sort((a,b) => b.conteggio - a.conteggio).forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td data-label="Prodotto"><b>${item.nome}</b></td>
-                    <td data-label="Macro-Area">${item.macroArea}</td>
-                    <td data-label="Assegnato a"><span class="status-badge status-pending">${item.assegnatoA}</span></td>
-                    <td data-label="Conteggio"><span class="status-badge status-paid">${item.conteggio} volte</span></td>
-                    <td data-label="Spesa"><b>€ ${item.spesaTotale.toFixed(2)}</b></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+            // Aggiorna KPI
 
-        function updateDashboard() {
-            let totalMonth = 0, totalPending = 0;
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+            document.getElementById('total-incomes').innerText = `€ ${totalIncomes.toFixed(2)}`;
 
-            dbSpese.forEach(item => {
-                const dateRef = item.dataEmissione || item.dataScadenza;
-                if(dateRef) {
-                    const d = new Date(dateRef);
-                    if(!isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                        totalMonth += parseFloat(item.importo) || 0;
-                    }
-                }
-                if(item.stato === 'Da Pagare') {
-                    totalPending += parseFloat(item.importo) || 0;
-                }
-            });
+            document.getElementById('total-expenses').innerText = `€ ${totalExpenses.toFixed(2)}`;
 
-            document.getElementById('dash-month-total').innerText = `€ ${totalMonth.toFixed(2)}`;
-            document.getElementById('dash-pending-total').innerText = `€ ${totalPending.toFixed(2)}`;
-            document.getElementById('dash-docs-count').innerText = dbSpese.length;
-            document.getElementById('dash-items-count').innerText = dbArticoli.length;
+            const balance = totalIncomes - totalExpenses;
 
-            const recentContainer = document.getElementById('dash-recent-list');
-            if (recentContainer) {
-                recentContainer.innerHTML = '';
-                if(dbSpese.length === 0) {
-                    recentContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">Nessuna spesa archiviata.</div>`;
-                } else {
-                    dbSpese.slice(0, 5).forEach(item => {
-                        const icon = item.tipo === 'scontrino' ? '🛒' : '⚡';
-                        const badgeClass = item.stato === 'Pagato' ? 'status-paid' : 'status-pending';
-                        
-                        const div = document.createElement('div');
-                        div.className = 'recent-item';
-                        div.innerHTML = `
-                            <div class="recent-item-info">
-                                <div class="recent-item-icon">${icon}</div>
-                                <div>
-                                    <div style="font-weight:700; font-size:0.9rem;">${item.ente}</div>
-                                    <div style="font-size:0.75rem; color:var(--text-muted);">${formatDateToIT(item.dataScadenza || item.dataEmissione)}</div>
-                                </div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div style="font-weight:800; font-size:0.95rem; color:var(--text-color);">€ ${parseFloat(item.importo).toFixed(2)}</div>
-                                <span class="status-badge ${badgeClass}" style="font-size:0.65rem; padding:2px 6px;">${item.stato}</span>
-                            </div>
-                        `;
-                        recentContainer.appendChild(div);
-                    });
-                }
+            const balanceEl = document.getElementById('total-balance');
+
+            balanceEl.innerText = `€ ${balance.toFixed(2)}`;
+
+            balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        });
+
+        // Cancella Transazione
+
+        window.deleteTransaction = async (id) => {
+
+            if (confirm("Sei sicuro di voler eliminare questa transazione?")) {
+
+                await deleteDoc(doc(db, "transactions", id));
+
             }
 
-            renderDashboardChart();
-        }
+        };
 
-        function renderDashboardChart() {
-            const canvas = document.getElementById('chartDashboard');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const monthlyTotals = {};
+        // Gestione Anteprima e Avvio Analisi AI
 
-            dbSpese.forEach(item => {
-                const dateRef = item.dataEmissione || item.dataScadenza;
-                if(dateRef) {
-                    const d = new Date(dateRef);
-                    if(!isNaN(d.getTime())) {
-                        const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        if(!monthlyTotals[key]) monthlyTotals[key] = { label: monthLabel, amount: 0 };
-                        monthlyTotals[key].amount += parseFloat(item.importo) || 0;
-                    }
-                }
-            });
+        window.previewAndAnalyze = function (event) {
 
-            const sortedKeys = Object.keys(monthlyTotals).sort();
-            const labels = sortedKeys.map(k => monthlyTotals[k].label);
-            const data = sortedKeys.map(k => monthlyTotals[k].amount);
+            const file = event.target.files[0];
 
-            if(chartDashInstance) chartDashInstance.destroy();
+            if (!file) return;
 
-            if (typeof Chart !== 'undefined') {
-                chartDashInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels.length ? labels : ['Nessun Dato'],
-                        datasets: [{
-                            label: 'Totale Speso (€)',
-                            data: data.length ? data : [0],
-                            backgroundColor: '#4f46e5',
-                            borderRadius: 8
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-            }
-        }
+            const reader = new FileReader();
 
-        function renderStatistiche() {
-            const canvasPie = document.getElementById('chartStatistiche');
-            const canvasBar = document.getElementById('chartUtenzeStorico');
-            if (!canvasPie || !canvasBar) return;
+            reader.onload = function (e) {
 
-            const selectedMonth = document.getElementById('filter-stat-month')?.value || '';
+                const imgEl = document.getElementById('preview-img');
 
-            const categories = {};
-            dbSpese.forEach(item => {
-                const dateRef = item.dataEmissione || item.dataScadenza;
-                let isMatch = true;
-                if (selectedMonth && dateRef) {
-                    isMatch = dateRef.startsWith(selectedMonth);
-                }
-                if (isMatch) {
-                    categories[item.categoria] = (categories[item.categoria] || 0) + (parseFloat(item.importo) || 0);
-                }
-            });
+                imgEl.src = e.target.result;
 
-            if (chartStatInstance) chartStatInstance.destroy();
-            if (typeof Chart !== 'undefined') {
-                chartStatInstance = new Chart(canvasPie.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(categories).length ? Object.keys(categories) : ['Nessun Dato'],
-                        datasets: [{
-                            data: Object.keys(categories).length ? Object.values(categories) : [1],
-                            backgroundColor: ['#4f46e5', '#d97706', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6']
-                        }]
-                    },
-                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-                });
+                imgEl.style.display = 'block';
+
+                const base64Data = e.target.result.split(',')[1];
+
+                analizzaConGeminiVision(base64Data, file.type);
+
+            };
+
+            reader.readAsDataURL(file);
+
+        };
+
+        // FUNZIONE GEMINI VISION API INTEGRATA
+
+        async function analizzaConGeminiVision(base64Image, mimeType) {
+
+            const loader = document.getElementById('ai-loader');
+
+            const status = document.getElementById('ai-status');
+
+            loader.style.display = 'block';
+
+            status.innerText = "Analisi dello scontrino con AI in corso...";
+
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+            const prompt = `Analizza questa immagine di uno scontrino fiscale ed estrai le seguenti informazioni sotto forma di JSON valido:
+
+            {
+
+                "merchant": "Nome dell'esercente o negozio",
+
+                "amount": importo totale come numero decimale (es. 12.50),
+
+                "date": "Data dello scontrino nel formato YYYY-MM-DD",
+
+                "category": "Una tra queste categorie: Alimentari, Casa, Trasporti, Svago, Salute, Altro"
+
             }
 
-            const utenzeMonthly = {};
-            dbSpese.forEach(item => {
-                if (/Luce|Gas|Acqua|Internet/i.test(item.categoria)) {
-                    const dateRef = item.dataEmissione || item.dataScadenza;
-                    if (dateRef) {
-                        const d = new Date(dateRef);
-                        if (!isNaN(d.getTime())) {
-                            const monthLabel = `${NOMI_MESI[d.getMonth()]} ${d.getFullYear()}`;
-                            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                            if (!utenzeMonthly[key]) utenzeMonthly[key] = { label: monthLabel, amount: 0 };
-                            utenzeMonthly[key].amount += (parseFloat(item.importo) || 0);
+            Rispondi ESCLUSIVAMENTE con il blocco JSON senza alcun testo introduttivo o formattazione markdown aggiuntiva.`;
+
+            const payload = {
+
+                contents: [{
+
+                    parts: [
+
+                        { text: prompt },
+
+                        {
+
+                            inline_data: {
+
+                                mime_type: mimeType,
+
+                                data: base64Image
+
+                            }
+
                         }
-                    }
-                }
-            });
 
-            const sortedKeys = Object.keys(utenzeMonthly).sort();
-            const barLabels = sortedKeys.map(k => utenzeMonthly[k].label);
-            const barData = sortedKeys.map(k => utenzeMonthly[k].amount);
+                    ]
 
-            if (chartUtenzeStoricoInstance) chartUtenzeStoricoInstance.destroy();
-            if (typeof Chart !== 'undefined') {
-                chartUtenzeStoricoInstance = new Chart(canvasBar.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: barLabels.length ? barLabels : ['Nessun Dato'],
-                        datasets: [{
-                            label: 'Spesa Utenze (€)',
-                            data: barData.length ? barData : [0],
-                            backgroundColor: '#d97706',
-                            borderRadius: 8
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
+                }]
+
+            };
+
+            try {
+
+                const response = await fetch(endpoint, {
+
+                    method: 'POST',
+
+                    headers: { 'Content-Type': 'application/json' },
+
+                    body: JSON.stringify(payload)
+
                 });
+
+                const data = await response.json();
+
+                
+
+                if (!response.ok) {
+
+                    throw new Error(data.error?.message || "Errore nella chiamata API Gemini");
+
+|---|
+
+                const rawText = data.candidates[0].content.parts[0].text.trim();
+
+                const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                const parsedData = JSON.parse(cleanJson);
+
+                // Auto-compilazione del modulo
+
+                if (parsedData.merchant) document.getElementById('desc').value = parsedData.merchant;
+
+                if (parsedData.amount) document.getElementById('amount').value = parsedData.amount;
+
+                if (parsedData.date) document.getElementById('date').value = parsedData.date;
+
+                if (parsedData.category) document.getElementById('category').value = parsedData.category;
+
+                document.getElementById('type').value = 'uscita';
+
+                status.innerText = "Scontrino analizzato con successo!";
+
+                status.style.color = "var(--success)";
+
+            } catch (err) {
+
+                console.error("Errore analisi Gemini Vision:", err);
+
+                status.innerText = "Impossibile analizzare lo scontrino. Compilazione manuale richiesta.";
+
+                status.style.color = "var(--danger)";
+
+            } finally {
+
+                loader.style.display = 'none';
+
             }
+
         }
+
     </script>
+
 </body>
+
 </html>
